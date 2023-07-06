@@ -1,0 +1,6 @@
+.svgBorder {
+    border: 20px solid transparent;
+    padding: 16px;
+    border-image: url('/ui/Ui_Frames.svg') 18 fill stretch;
+    border-image-outset: 2px;
+}

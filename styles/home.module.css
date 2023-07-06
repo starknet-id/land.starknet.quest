@@ -1,0 +1,17 @@
+.screen {
+    z-index: 0;
+    position: relative;
+    padding-top: 12vh;
+    background-color: var(--background);
+    width: 100%;
+    min-height: 100vh;
+  }
+
+  .container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    text-align: center;
+    margin-top: 3rem;
+  }
