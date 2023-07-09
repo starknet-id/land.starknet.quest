@@ -1,16 +1,36 @@
-import { Tileset, iLDtk, Level, IntGridValue } from "@/types/ldtk";
+import {
+  Tileset,
+  iLDtk,
+  Level,
+  IntGridValue,
+  EntityProps,
+  Entity,
+} from "@/types/ldtk";
 import * as THREE from "three";
-import { CityBuilded } from "@/types/types";
+import {
+  AspectNftProps,
+  CityBuilded,
+  CityBuildings,
+  ClosestCorner,
+} from "@/types/types";
 import {
   MAX_LAND_HEIGHT,
   MAX_LAND_WIDTH,
   MIN_LAND_HEIGHT,
   MIN_LAND_WIDTH,
+  NFTAvailable,
+  buildingsOrdered,
 } from "./constants";
 import {
+  calculateCityCenter,
   convertTo2D,
-  findRectangleCorners,
+  findClosestCorner,
   getOffsetFromDirection,
+  getSubArray,
+  needsDirectionChange,
+  printSubArray,
+  setDirectionBasedOnCorner,
+  shuffleArray,
 } from "./landUtils";
 
 const TILE_EMPTY = 0;
@@ -25,6 +45,7 @@ export class LdtkReader {
   address: string;
   city: Array<Array<number>>;
   cityBuilded: Array<Array<CityBuilded | null>>;
+  buildings: Array<Array<CityBuildings | null>>;
   idxToRule: { [key: string]: number };
   citySize: number;
   TILE_LAND: number;
@@ -35,8 +56,16 @@ export class LdtkReader {
     endX: number;
     endY: number;
   }> = [];
+  userNft: AspectNftProps[];
+  entities: { [key: number]: EntityProps[] };
+  currentDirection: string | null;
 
-  constructor(filejson: any, address: string, citySize: number) {
+  constructor(
+    filejson: any,
+    address: string,
+    citySize: number,
+    userNft: AspectNftProps[]
+  ) {
     this.json = filejson;
     this.tilesets = this.json.defs.tilesets;
     this.ldtk = filejson;
@@ -45,6 +74,9 @@ export class LdtkReader {
     this.city = new Array(citySize)
       .fill(0)
       .map(() => new Array(citySize).fill(TILE_EMPTY));
+    this.buildings = new Array(citySize)
+      .fill(0)
+      .map(() => new Array(citySize).fill(null));
     this.cityBuilded = new Array(citySize)
       .fill(0)
       .map(() => new Array(citySize).fill(null));
@@ -59,9 +91,50 @@ export class LdtkReader {
     console.log("idxToRule", this.idxToRule);
     this.TILE_LAND = this.idxToRule["Sidewalk"];
     this.TILE_ROAD = this.idxToRule["Roads"];
+    this.currentDirection = null;
+
+    this.entities = this.buildUserNft(userNft);
+    this.userNft = userNft;
   }
 
-  // todo: typing of return value
+  buildUserNft(userNft: AspectNftProps[]): { [key: number]: EntityProps[] } {
+    // todo : compare with owned NFTs once the data in json are updated
+    let entities: { [key: number]: EntityProps[] } = {};
+    this.ldtk.defs.entities.forEach((entity: Entity) => {
+      let heightGroup = 0;
+      let activeWidth = 0;
+      let corner = "";
+      const splittedId = entity.identifier.split("_");
+      if (splittedId[0] === "NFT") {
+        heightGroup = parseInt(splittedId[3][1]);
+        activeWidth = parseInt(splittedId[2][0]);
+        if (splittedId[4]) corner = splittedId[4];
+      } else {
+        heightGroup = parseInt(splittedId[2][1]);
+        activeWidth = parseInt(splittedId[1][0]);
+      }
+
+      const entityProps: EntityProps = {
+        ...entity,
+        activeWidth: entity.tileRect ? entity.tileRect.w / 16 : activeWidth,
+        heightGroup,
+        isBuilt: false,
+        corner,
+      };
+      if (!entities[activeWidth]) {
+        entities[activeWidth] = [];
+      }
+      entities[activeWidth].push(entityProps);
+    });
+    // Sort entities by height group
+    for (let activeWidth in entities) {
+      entities[activeWidth].sort((a: EntityProps, b: EntityProps) => {
+        return b.heightGroup - a.heightGroup;
+      });
+    }
+    return entities;
+  }
+
   CreateMap(levelName: string, tileset: string | string[]): any {
     let j = this.ldtk;
     this.level = j.levels.find(
@@ -99,14 +172,14 @@ export class LdtkReader {
 
     // Generate blocks & rules
     this.GenerateBlocks();
-    // this.addGrassAroundLand();
+    this.addGrassAroundLand();
     this.ApplyRules();
 
     return mappack;
   }
 
   GenerateBlocks(): void {
-    let blockMax = 5;
+    let blockMax = 1;
     let blockNb = 0;
 
     while (blockNb <= blockMax) {
@@ -120,7 +193,12 @@ export class LdtkReader {
 
     // generate a new block
     const blockSize = this.GetRandomBlockSize(blockNb);
-    console.log("----- NEW BLOCK SIZE for rectangle", blockSize);
+    console.log(
+      "----- NEW BLOCK SIZE for rectangle",
+      blockSize,
+      "blockNb",
+      blockNb
+    );
 
     if (blockNb == 0) {
       center = {
@@ -132,22 +210,19 @@ export class LdtkReader {
         y: center.y - Math.floor(blockSize.y / 2),
         direction: "bottom",
       };
-      this.PlaceRectangle(corner, blockSize);
+      const coordinates = this.PlaceRectangle(corner, blockSize);
+      if (!coordinates) return;
       this.addRoadsAroundLand();
+      this.generateBuildings(corner, blockSize, coordinates);
     } else {
-      center = this.findNextBlockCenter(blockNb, blockSize);
-      if (!center) {
-        console.log("No space left for a new block.");
-        return;
-      }
+      this.findNextBlockCorners(blockSize);
     }
+    console.log("city", this.city);
   }
 
-  // randomly choose where to start the next block of buildings
-  FindRandomRoadTile(
-    rectangleSize: THREE.Vector2,
+  findValidRoadTiles(
     direction: string
-  ): { x: number; y: number; direction: string } | null {
+  ): { x: number; y: number; direction: string }[] {
     let roadTiles = [];
 
     for (let y = 0; y < this.citySize; y++) {
@@ -175,7 +250,15 @@ export class LdtkReader {
         }
       }
     }
+    return roadTiles;
+  }
 
+  // randomly choose where to start the next block of buildings
+  FindRandomRoadTile(
+    rectangleSize: THREE.Vector2,
+    direction: string
+  ): { x: number; y: number; direction: string } | null {
+    let roadTiles = this.findValidRoadTiles(direction);
     if (roadTiles.length === 0) {
       return null;
     }
@@ -185,33 +268,39 @@ export class LdtkReader {
     } else if (direction === "top") {
       roadTiles.sort((a, b) => a.y - b.y);
     }
+    console.log("possible roadTiles", roadTiles);
 
     let selectedRoadTile = false;
     let counter: number = 0; // keep track of first index
     while (!selectedRoadTile) {
       for (let roadTile of roadTiles) {
-        let potentialTiles = [
-          {
+        let potentialTiles = [];
+        if (direction === "right") {
+          potentialTiles.push({
             x: roadTile.x + 1,
             y: roadTile.y,
             direction: "right",
-          }, // East
-          {
+          });
+        } else if (direction === "left") {
+          potentialTiles.push({
             x: roadTile.x - 1,
             y: roadTile.y,
             direction: "left",
-          }, // West
-          {
-            x: roadTile.x,
-            y: roadTile.y + 1,
-            direction: "bottom",
-          }, // North
-          {
+          });
+        } else if (direction === "top") {
+          potentialTiles.push({
             x: roadTile.x,
             y: roadTile.y - 1,
             direction: "top",
-          }, // South
-        ];
+          });
+        } else if (direction === "bottom") {
+          potentialTiles.push({
+            x: roadTile.x,
+            y: roadTile.y + 1,
+            direction: "bottom",
+          });
+        }
+        console.log("potentialTiles", potentialTiles);
 
         // Filter out tiles that are outside the grid or not empty
         let validTiles = potentialTiles.filter(
@@ -222,6 +311,7 @@ export class LdtkReader {
             tile.y < this.citySize &&
             this.city[tile.y][tile.x] === 0
         );
+        console.log("validTiles", validTiles);
 
         let validTile = null;
         if (validTiles.length > 0) {
@@ -233,11 +323,14 @@ export class LdtkReader {
             );
             if (isValid) {
               selectedRoadTile = true;
+              console.log("tile selected", tile);
               validTile = tile;
               break;
             }
           }
         }
+
+        console.log("selectedRoadTile", selectedRoadTile);
 
         if (selectedRoadTile) {
           return validTile;
@@ -260,6 +353,7 @@ export class LdtkReader {
       for (let x = 0; x < this.citySize; x++) {
         // Check if the current tile is part of the rectangle (1 or 2)
         if (this.city[y][x] === 1 || this.city[y][x] === 2) {
+          // Update the bounding coordinates
           minX = Math.min(minX, x);
           maxX = Math.max(maxX, x);
           minY = Math.min(minY, y);
@@ -270,144 +364,154 @@ export class LdtkReader {
     return { minX, maxX, minY, maxY };
   }
 
-  findBiggestEmptyRect(minX: number, maxX: number, minY: number, maxY: number) {
-    let maxArea = 0;
-    let dp = new Array(this.city.length);
-    for (let i = 0; i < this.city.length; i++) {
-      dp[i] = new Array(this.city.length).fill(0);
-    }
+  findEmptyCorners(arr: number[][]) {
+    let rows = arr.length;
+    let cols = arr[0].length;
+    let corners = [];
 
-    // Traverse the grid within the specified bounds
-    for (let i = minY; i <= maxY; i++) {
-      for (let j = minX; j <= maxX; j++) {
-        if (this.city[i][j] === 0) {
-          // if the cell is empty
-          if (i > minY && j > minX) {
-            // if not on the upper or left bound
-            let minDp = Math.min(dp[i][j - 1], dp[i - 1][j], dp[i - 1][j - 1]);
-            dp[i][j] = minDp + 1;
-          } else {
-            dp[i][j] = 1;
+    for (let r = 1; r < rows - 1; r++) {
+      for (let c = 1; c < cols - 1; c++) {
+        if (arr[r][c] === 0) {
+          if (arr[r - 1][c] > 0 && arr[r][c - 1] > 0) {
+            // upper-left corner
+            corners.push({
+              row: r,
+              col: c,
+              corner: "topLeft",
+              w: cols - c,
+              h: rows - r,
+            });
+          } else if (arr[r - 1][c] > 0 && arr[r][c + 1] > 0) {
+            // upper-right corner
+            corners.push({
+              row: r,
+              col: c,
+              corner: "topRight",
+              w: cols - c,
+              h: rows - r,
+            });
+          } else if (arr[r + 1][c] > 0 && arr[r][c - 1] > 0) {
+            // lower-left corner
+            corners.push({
+              row: r,
+              col: c,
+              corner: "bottomLeft",
+              w: cols - c,
+              h: rows - r,
+            });
+          } else if (arr[r + 1][c] > 0 && arr[r][c + 1] > 0) {
+            // lower-right corner
+            corners.push({
+              row: r,
+              col: c,
+              corner: "bottomRight",
+              w: cols - c,
+              h: rows - r,
+            });
           }
-          maxArea = Math.max(maxArea, dp[i][j]);
         }
       }
     }
-
-    for (let i = minY; i <= maxY; i++) {
-      for (let j = minX; j <= maxX; j++) {
-        if (dp[i][j] === maxArea) {
-          let corners = findRectangleCorners(dp, j, i);
-          return {
-            maxArea,
-            topLeft: corners.topLeft,
-            topRight: { x: corners.bottomRight.x, y: corners.topLeft.y },
-            bottomRight: corners.bottomRight,
-            bottomLeft: { x: corners.topLeft.x, y: corners.bottomRight.y },
-          };
-        }
-      }
-    }
-    return null;
+    return corners;
   }
 
-  findNextBlockCenter(
-    blockNb: number,
-    blockSize: THREE.Vector2
-  ): { x: number; y: number } | null {
-    const rand = this.randomGround(this.city.length);
-    let direction =
-      rand > 0.2 && rand < 0.4
-        ? "bottom"
-        : rand > 0.4 && rand < 0.6
-        ? "top"
-        : rand > 0.6 && rand < 0.8
-        ? "right"
-        : "left";
-    if (blockNb >= 2) {
-      // choose direction depending on city proportions
-      const { minX, maxX, minY, maxY } = this.findCitySize();
-      const citySizeX = maxX - minX + 1;
-      const citySizeY = maxY - minY + 1;
-      const corners = this.findBiggestEmptyRect(minX, maxX, minY, maxY);
-      if (!corners) {
-        console.log("NO CORNERS");
-        return null;
-      }
-      if (corners.maxArea >= 2) {
-        let corner = { x: 0, y: 0, direction: "" };
-        // Check which corner is surrounded by roads
-        if (
-          this.city[corners.topLeft.y - 1][corners.topLeft.x] ==
-            this.TILE_ROAD &&
-          this.city[corners.topLeft.y][corners.topLeft.x - 1] == this.TILE_ROAD
-        ) {
-          corner = { ...corners.topLeft, direction: "bottom" };
-        } else if (
-          this.city[corners.topRight.y - 1][corners.topRight.x] ==
-            this.TILE_ROAD &&
-          this.city[corners.topRight.y][corners.topRight.x + 1] ==
-            this.TILE_ROAD
-        ) {
-          corner = { ...corners.topRight, direction: "left" };
-        } else if (
-          this.city[corners.bottomRight.y + 1][corners.bottomRight.x] ==
-            this.TILE_ROAD &&
-          this.city[corners.bottomRight.y][corners.bottomRight.x - 1] ==
-            this.TILE_ROAD
-        ) {
-          corner = { ...corners.bottomRight, direction: "right" };
-        } else {
-          corner = { ...corners.bottomRight, direction: "top" };
-        }
-        this.PlaceRectangle(corner, blockSize);
+  findNextBlockCorners(blockSize: THREE.Vector2) {
+    // todo: choose randomly first direction instead
+    if (!this.currentDirection) this.currentDirection = "top";
+
+    const citySize = this.calculateCitySize();
+    const center = calculateCityCenter(
+      citySize.minX,
+      citySize.maxX,
+      citySize.minY,
+      citySize.maxY
+    );
+    console.log("this.currentDirection", this.currentDirection);
+
+    const subArr = getSubArray(
+      this.city,
+      citySize.minX,
+      citySize.maxX,
+      citySize.minY,
+      citySize.maxY
+    );
+    console.log("subArr", subArr);
+    const corners = this.findEmptyCorners(subArr);
+    console.log("corners", corners);
+    let closestCorner = findClosestCorner(center, corners);
+    console.log("closestCorner", closestCorner);
+
+    if (
+      !closestCorner ||
+      needsDirectionChange(closestCorner, subArr, blockSize)
+    ) {
+      console.log("need change dir");
+      this.changeDirection(citySize);
+      let roadTile = this.FindRandomRoadTile(blockSize, this.currentDirection);
+      if (roadTile) {
+        const coordinates = this.PlaceRectangle(roadTile, blockSize);
+        this.generateBuildings(roadTile, blockSize, coordinates as any);
         this.addRoadsAroundLand();
-      } else {
-        direction =
-          citySizeX > citySizeY
-            ? this.randomGround(citySizeX + citySizeY) > 0.5
-              ? "bottom"
-              : "top"
-            : citySizeY > citySizeX
-            ? this.randomGround(citySizeX + citySizeY) > 0.5
-              ? "right"
-              : "left"
-            : direction;
-        let roadTile = this.FindRandomRoadTile(blockSize, direction);
-        if (roadTile != null) {
-          this.PlaceRectangle(roadTile, blockSize);
-          this.addRoadsAroundLand();
-        }
       }
     } else {
-      let roadTile = this.FindRandomRoadTile(blockSize, direction);
-      if (roadTile != null) {
-        this.PlaceRectangle(roadTile, blockSize);
-        this.addRoadsAroundLand();
-      }
+      this.PlaceRectangle(
+        {
+          x: closestCorner.col + citySize.minX,
+          y: closestCorner.row + citySize.minY,
+          direction: closestCorner.corner,
+        },
+        blockSize
+      );
+      this.addRoadsAroundLand();
+      this.currentDirection = setDirectionBasedOnCorner(closestCorner);
     }
-    return null;
+  }
+
+  calculateCitySize() {
+    const { minX, maxX, minY, maxY } = this.findCitySize();
+    const citySizeX = maxX - minX + 1;
+    const citySizeY = maxY - minY + 1;
+
+    return { minX, maxX, minY, maxY, citySizeX, citySizeY };
+  }
+
+  changeDirection(citySize: { citySizeX: number; citySizeY: number }) {
+    if (
+      citySize.citySizeX >= citySize.citySizeY &&
+      this.currentDirection !== "top" &&
+      this.currentDirection !== "bottom"
+    ) {
+      this.currentDirection =
+        this.currentDirection === "left" ? "bottom" : "top";
+    } else if (
+      citySize.citySizeX <= citySize.citySizeY &&
+      this.currentDirection !== "right" &&
+      this.currentDirection !== "left"
+    ) {
+      this.currentDirection =
+        this.currentDirection === "right" ? "top" : "bottom";
+    }
   }
 
   PlaceRectangle(
     corner: { x: number; y: number; direction: string },
     rectangleSize: THREE.Vector2
-  ): boolean {
+  ): { startX: number; startY: number; endX: number; endY: number } | null {
     let startX, startY, endX, endY;
 
-    if (corner.direction === "bottom") {
+    if (corner.direction === "topLeft") {
       // If the space is below, the corner is the top-left of the rectangle
       startX = corner.x;
       startY = corner.y;
       endX = corner.x + rectangleSize.x;
       endY = corner.y + rectangleSize.y;
-    } else if (corner.direction === "left") {
+    } else if (corner.direction === "topRight") {
       // corner is the top right of the rectangle
       startX = corner.x - rectangleSize.x + 1;
       startY = corner.y;
       endX = corner.x + 1;
       endY = corner.y + rectangleSize.y + 1;
-    } else if (corner.direction === "top") {
+    } else if (corner.direction === "bottomRight") {
       // the corner is the bottom-right of the rectangle
       startX = corner.x - rectangleSize.x + 1;
       startY = corner.y - rectangleSize.y + 1;
@@ -428,16 +532,15 @@ export class LdtkReader {
       endX > this.citySize ||
       endY > this.citySize
     ) {
-      return false;
+      return null;
     }
-
     // Fill in the rectangle
     for (let y = startY; y < endY; y++) {
       for (let x = startX; x < endX; x++) {
         this.city[y][x] = this.TILE_LAND;
       }
     }
-    return true;
+    return { startX, startY, endX, endY };
   }
 
   addRoadsAroundLand(): void {
@@ -446,38 +549,7 @@ export class LdtkReader {
     for (let y = 0; y < this.city.length; y++) {
       for (let x = 0; x < this.city[y].length; x++) {
         // Check if the current cell is a land
-        if (this.city[y][x] === 1) {
-          // Go through the cells in a 2-unit radius around the current cell
-          for (let yOffset = -2; yOffset <= 2; yOffset++) {
-            for (let xOffset = -2; xOffset <= 2; xOffset++) {
-              // Check if the target cell is within the city grid
-              if (
-                y + yOffset >= 0 &&
-                y + yOffset < this.city.length &&
-                x + xOffset >= 0 &&
-                x + xOffset < this.city[y].length
-              ) {
-                // Check if the target cell is empty
-                if (copyCityGrid[y + yOffset][x + xOffset] === 0) {
-                  // Mark the target cell as a road
-                  copyCityGrid[y + yOffset][x + xOffset] = 2;
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    this.city = copyCityGrid;
-  }
-
-  addGrassAroundLand(): void {
-    let copyCityGrid = JSON.parse(JSON.stringify(this.city)); // Create a deep copy of the city grid
-
-    for (let y = 0; y < this.city.length; y++) {
-      for (let x = 0; x < this.city[y].length; x++) {
-        // Check if the current cell is a land
-        if (this.city[y][x] === this.idxToRule["InnerGrass"]) {
+        if (this.city[y][x] === this.idxToRule["Sidewalk"]) {
           // Go through the cells in a 2-unit radius around the current cell
           for (let yOffset = -2; yOffset <= 2; yOffset++) {
             for (let xOffset = -2; xOffset <= 2; xOffset++) {
@@ -492,7 +564,7 @@ export class LdtkReader {
                 if (copyCityGrid[y + yOffset][x + xOffset] === 0) {
                   // Mark the target cell as a road
                   copyCityGrid[y + yOffset][x + xOffset] =
-                    this.idxToRule["InnerGrass"];
+                    this.idxToRule["Roads"];
                 }
               }
             }
@@ -501,6 +573,39 @@ export class LdtkReader {
       }
     }
     this.city = copyCityGrid;
+    console.log("this.city after roads", this.city);
+  }
+
+  addGrassAroundLand(): void {
+    let copyCityGrid = JSON.parse(JSON.stringify(this.city));
+
+    for (let y = 0; y < this.city.length; y++) {
+      for (let x = 0; x < this.city[y].length; x++) {
+        // Check if the current cell is a land
+        if (this.city[y][x] === this.idxToRule["Roads"]) {
+          // Go through the cells in a 2-unit radius around the current cell
+          for (let yOffset = -2; yOffset <= 2; yOffset++) {
+            for (let xOffset = -2; xOffset <= 2; xOffset++) {
+              // Check if the target cell is within the city grid
+              if (
+                y + yOffset >= 0 &&
+                y + yOffset < this.city.length &&
+                x + xOffset >= 0 &&
+                x + xOffset < this.city[y].length
+              ) {
+                // Check if the target cell is empty
+                if (copyCityGrid[y + yOffset][x + xOffset] === 0) {
+                  // Mark the target cell as a road
+                  copyCityGrid[y + yOffset][x + xOffset] = 3;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    this.city = copyCityGrid;
+    console.log("this.city after grass", this.city);
   }
 
   CheckSpaceForRectangle(
@@ -568,13 +673,8 @@ export class LdtkReader {
       let roadGroup = rules.autoRuleGroups[l];
 
       // only check active groups
-      if (
-        // skip those groups for now
-        roadGroup.name !== "Grass" &&
-        roadGroup.active
-      ) {
-        let idx = this.idxToRule[roadGroup.name as string];
-
+      if (roadGroup.active) {
+        let idx = this.idxToRule[roadGroup.name as string]; // get IntGrid value from rule group name
         if (idx) {
           for (let y = 0; y < this.city.length; y++) {
             for (let x = 0; x < this.city[y].length; x++) {
@@ -596,10 +696,11 @@ export class LdtkReader {
                     rule.flipY
                   );
                   if (match) {
-                    const seed = Math.abs(this.randomGround(rule.perlinSeed));
+                    const rand = Math.random();
+
                     if (
                       rule.chance === 1 ||
-                      (rule.chance !== 1 && seed > rule.chance)
+                      (rule.chance !== 1 && rand < rule.chance)
                     ) {
                       this.cityBuilded[y][x] = {
                         tileId:
@@ -611,10 +712,6 @@ export class LdtkReader {
                         flipX: needFlipX,
                         flipY: needFlipY,
                       };
-
-                      if (rule.pivotX !== 0 || rule.pivotY !== 0) {
-                        console.log("HERE PIVOT");
-                      }
 
                       if (rule.breakOnMatch) break;
                     } else {
@@ -695,6 +792,99 @@ export class LdtkReader {
     }
 
     return { match: false, needFlipX: false, needFlipY: false };
+  }
+
+  generateBuildings(
+    corner: { x: number; y: number; direction: string },
+    rectangleSize: THREE.Vector2,
+    coordinates: { startX: number; startY: number; endX: number; endY: number }
+  ): void {
+    // @ts-ignore
+    let possibleCombinations = buildingsOrdered[rectangleSize.x - 2]; // substract sidewalk width
+    console.log("possibleCombinations", possibleCombinations);
+
+    const rand = this.randomGround(rectangleSize.x + rectangleSize.y);
+    let indexStart = Math.floor(rand * possibleCombinations.length);
+
+    const copyEntities = JSON.parse(JSON.stringify(this.entities));
+
+    let counter = 0;
+    while (counter < possibleCombinations.length) {
+      const combination = possibleCombinations[indexStart];
+      console.log("combination", combination);
+      // shuffle the building
+      const randCombination = shuffleArray(combination, rand);
+      console.log("randCombination", randCombination);
+
+      let isBuilt = true;
+      let x = coordinates.startX + 1; // add sidewalk
+      let y = coordinates.endY - 1 - 1; // substract sidewalk
+
+      for (let i = 0; i < randCombination.length; i++) {
+        console.log("randCombination[i]", randCombination[i]);
+        const entityIndex = copyEntities[randCombination[i]].findIndex(
+          (elem: EntityProps) =>
+            !elem.isBuilt &&
+            NFTAvailable.includes(elem.identifier) &&
+            (elem.corner ===
+              (i === 0
+                ? "CornerLeft"
+                : i === randCombination.length - 1
+                ? "CornerRight"
+                : "") ||
+              elem.corner === "")
+        );
+
+        console.log(
+          "entitiesLeft",
+          this.entities[randCombination[i]][entityIndex]
+        );
+        if (entityIndex !== -1) {
+          // if entity is found
+          const entity = copyEntities[randCombination[i]][entityIndex];
+          for (let w = 0; w < entity.activeWidth; w++) {
+            for (let h = 0; h < entity.tileRect.h / 16; h++) {
+              if (w === 0 && h === 0) {
+                this.buildings[y][x] = {
+                  tile: entity.tileRect,
+                  isOccupied: true,
+                  isHidden: false,
+                };
+              } else {
+                this.buildings[y - h][x + w] = {
+                  tile: null,
+                  isOccupied: false,
+                  isHidden: true,
+                };
+              }
+            }
+          }
+          copyEntities[randCombination[i]][entityIndex].isBuilt = true;
+          console.log(
+            "building",
+            copyEntities[randCombination[i]][entityIndex]
+          );
+          x = x + entity.activeWidth;
+        } else {
+          console.log(
+            "not enough NFTs to build this combination, let's try the next one"
+          );
+          isBuilt = false;
+          break;
+        }
+      }
+
+      if (isBuilt) {
+        this.entities = copyEntities;
+        break;
+      }
+      if (indexStart === possibleCombinations.length - 1) indexStart = 0;
+      counter++;
+      indexStart++;
+    }
+    // print subArray of buildings
+    // const { minX, maxX, minY, maxY } = this.findCitySize();
+    // printSubArray(this.buildings, minX, maxX, minY, maxY);
   }
 
   randomGround(spec: number): number {

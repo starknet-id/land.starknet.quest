@@ -1,3 +1,5 @@
+import { number } from "starknet";
+
 type Identity = {
   id: string;
   addr: string;
@@ -39,4 +41,28 @@ export interface CityBuilded {
   tileId: number;
   flipX: boolean;
   flipY: boolean;
+}
+
+export interface CityBuildings {
+  tile: TileRect | null;
+  isOccupied: boolean;
+  isHidden: boolean;
+}
+
+export interface ClosestCorner {
+  h: number;
+  w: number;
+  col: number;
+  row: number;
+  corner: string;
+}
+
+export interface Pos {
+  x: number;
+  y: number;
+}
+
+export interface Size {
+  x: number;
+  y: number;
 }

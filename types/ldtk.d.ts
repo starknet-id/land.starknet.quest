@@ -139,6 +139,7 @@ export interface Entity {
   pivotX: number;
   pivotY: number;
   fieldDefs: FieldDef[];
+  doc: string;
 }
 
 export interface TileRect {
@@ -386,4 +387,38 @@ export interface Neighbour {
   levelIid: string;
   levelUid: number;
   dir: string;
+}
+
+export interface EntityProps {
+  identifier: string;
+  uid: number;
+  tags: any[];
+  width: number;
+  height: number;
+  resizableX: boolean;
+  resizableY: boolean;
+  keepAspectRatio: boolean;
+  tileOpacity: number;
+  fillOpacity: number;
+  lineOpacity: number;
+  hollow: boolean;
+  color: string;
+  renderMode: string;
+  showName: boolean;
+  tilesetId?: number;
+  tileId?: number;
+  tileRenderMode: string;
+  tileRect?: TileRect;
+  maxCount: number;
+  limitScope: string;
+  limitBehavior: string;
+  pivotX: number;
+  pivotY: number;
+  fieldDefs: FieldDef[];
+  doc: string;
+  // custom data
+  activeWidth: number;
+  heightGroup: number;
+  isBuilt: boolean;
+  corner: string;
 }

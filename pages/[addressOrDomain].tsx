@@ -23,9 +23,6 @@ const AddressOrDomain: NextPage = () => {
   const [initProfile, setInitProfile] = useState(false);
   const [userNft, setUserNft] = useState<AspectNftProps[]>([]);
 
-  console.log("addressOrDomain", addressOrDomain);
-  console.log("identity", identity);
-
   // Fetch Aspect API and filter by contract Addresses
   useEffect(() => {
     if (
@@ -92,15 +89,15 @@ const AddressOrDomain: NextPage = () => {
   }, [addressOrDomain, address]);
 
   useEffect(() => {
-    // if (identity) {
-    //   retrieveAssets(
-    //     `https://${
-    //       process.env.NEXT_PUBLIC_IS_TESTNET === "true" ? "api-testnet" : "api"
-    //     }.aspect.co/api/v0/assets?owner_address=${decimalToHex(identity.addr)}`
-    //   ).then((data) => {
-    //     setUserNft(data.assets);
-    //   });
-    // }
+    if (identity) {
+      retrieveAssets(
+        `https://${
+          process.env.NEXT_PUBLIC_IS_TESTNET === "true" ? "api-testnet" : "api"
+        }.aspect.co/api/v0/assets?owner_address=${decimalToHex(identity.addr)}`
+      ).then((data) => {
+        setUserNft(data.assets);
+      });
+    }
     // retrieveAssets(
     //   `https://${
     //     process.env.NEXT_PUBLIC_IS_TESTNET === "true" ? "api-testnet" : "api"
@@ -148,10 +145,10 @@ const AddressOrDomain: NextPage = () => {
     // );
   };
 
-  return identity && identity.addr ? (
+  return identity && identity.addr && userNft.length > 0 ? (
     <>
       <div style={{ height: "100vh", width: "100vw", zIndex: "0" }}>
-        <Scene address={identity?.addr as string} />
+        <Scene address={identity?.addr as string} userNft={userNft} />
       </div>
     </>
   ) : null;

@@ -2,17 +2,19 @@ import { Canvas } from "@react-three/fiber";
 import { FunctionComponent, useEffect, useRef, useState } from "react";
 import { NoToneMapping, Vector2 } from "three";
 import { Camera } from "./Camera";
-import { getGridPositionFromTileset } from "@/utils/def";
-import { Grid } from "@react-three/drei";
 import { LdtkReader } from "@/utils/parser";
 import Ground from "./Ground";
 import { iLDtk } from "@/types/ldtk";
+import { AspectNftProps } from "@/types/types";
+import Buildings from "./Buildings";
+import { Grid } from "@react-three/drei";
 
 type SceneProps = {
   address: string;
+  userNft: AspectNftProps[];
 };
 
-export const Scene: FunctionComponent<SceneProps> = ({ address }) => {
+export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
   const refCanvas = useRef<any>();
   const indexRef = useRef<any>();
   const [index, setIndex] = useState(10);
@@ -35,18 +37,21 @@ export const Scene: FunctionComponent<SceneProps> = ({ address }) => {
   const [landTilesets, setLandTilesets] = useState<any>(null);
   const [entities, setEntities] = useState<any>(null);
   const [cityData, setCityData] = useState<any>(null);
-  const [citySize, setCitySize] = useState(140);
+  const [buildingData, setBuildingData] = useState<any>(null);
+  const [citySize, setCitySize] = useState(60);
+  const [nftArray, setNftArray] = useState<any>(null);
 
   useEffect(() => {
     if (data) {
       // todo : calculate city size and number of blocks needed
-      let mapReader = new LdtkReader(data, address, citySize);
+      let mapReader = new LdtkReader(data, address, citySize, userNft);
       console.log("mapReader", mapReader);
 
       let createTest = mapReader.CreateMap("Level_0", "SIDCity_TilesetSheet");
       console.log("createTest", createTest);
 
       setCityData(mapReader.cityBuilded);
+      setBuildingData(mapReader.buildings);
     }
   }, [data]);
 
@@ -71,13 +76,50 @@ export const Scene: FunctionComponent<SceneProps> = ({ address }) => {
   }, []);
 
   useEffect(() => {
-    if (data) {
-      const landTilesets = getGridPositionFromTileset(data.defs.tilesets);
-      setLandTilesets(landTilesets);
-      console.log("data", data);
-      setEntities(data.defs.entities);
-    }
-  }, [data]);
+    const NFTArray = {
+      0: {
+        name: "NFT_0",
+        tileUid: 5,
+      },
+      1: {
+        name: "NFT_0",
+        tileUid: 5,
+      },
+      2: {
+        name: "NFT_0",
+        tileUid: 4,
+      },
+      3: {
+        name: "NFT_0",
+        tileUid: 4,
+      },
+      4: {
+        name: "NFT_0",
+        tileUid: 3,
+      },
+      5: {
+        name: "NFT_0",
+        tileUid: 3,
+      },
+      6: {
+        name: "NFT_0",
+        tileUid: 3,
+      },
+      7: {
+        name: "NFT_0",
+        tileUid: 3,
+      },
+      8: {
+        name: "NFT_0",
+        tileUid: 2,
+      },
+      9: {
+        name: "NFT_0",
+        tileUid: 2,
+      },
+    };
+    setNftArray(NFTArray);
+  }, []);
 
   // Controls
   useEffect(() => {
@@ -114,7 +156,7 @@ export const Scene: FunctionComponent<SceneProps> = ({ address }) => {
     <>
       <Canvas
         id="canvasScene"
-        gl={{ antialias: true, toneMapping: NoToneMapping }}
+        gl={{ antialias: false, toneMapping: NoToneMapping }}
         linear
         ref={refCanvas}
         onCreated={() => {
@@ -171,7 +213,7 @@ export const Scene: FunctionComponent<SceneProps> = ({ address }) => {
           index={index}
           citySize={citySize}
         />
-        {/* <Grid
+        <Grid
           position={[citySize / 2, 0.22, citySize / 2]}
           args={[citySize, citySize]}
           cellSize={16}
@@ -184,20 +226,19 @@ export const Scene: FunctionComponent<SceneProps> = ({ address }) => {
           // fadeStrength: { value: 1, min: 0, max: 1, step: 0.1 },
           // followCamera: false,
           infiniteGrid={true}
-        /> */}
-        {/* {entities &&
-          entities.map((entity: any) => {
-            return (
-              <ResourceItem
-                tileset={landTilesets}
-                entity={entity}
-                pos={{ posX: 20, posY: 8 }}
-              />
-            );
-          })} */}
+        />
+
         {data && cityData ? (
           <Ground tileset={data?.defs.tilesets[0]} cityData={cityData} />
         ) : null}
+
+        {data && buildingData ? (
+          <Buildings
+            tileset={data?.defs.tilesets[2]}
+            buildingData={buildingData}
+          />
+        ) : null}
+
         {/* <TerrainBackground />
         <Terrain />
         <TerrainBorder /> */}

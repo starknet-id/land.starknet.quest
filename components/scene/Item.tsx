@@ -56,8 +56,8 @@ export const ResourceItem = memo<IElem>(
       <>
         <mesh
           ref={meshRef}
-          // position={[pos.posX + 0.5, 0.22, pos.posY - 0.5]}
-          position={[pos.posX + 0.5, 0.22 + pos.posY * 0.02, pos.posY - 0.5]}
+          position={[pos.posX + 0.5, 0.22, pos.posY - 0.5]}
+          // position={[pos.posX + 0.5, 0.22 + pos.posY * 0.02, pos.posY - 0.5]}
           name={`nameblock`.toString()}
           rotation={[-Math.PI * 0.5, 0, 0]}
         >
