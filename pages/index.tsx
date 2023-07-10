@@ -60,7 +60,7 @@ export default function Home() {
   }, [library, network, isConnected]);
 
   useEffect(() => {
-    fetch("/data/SIDCity_Base_V2.json")
+    fetch("/data/SIDCity_Base_V3.json")
       .then((response) => {
         if (!response.ok) {
           throw new Error(response.statusText);

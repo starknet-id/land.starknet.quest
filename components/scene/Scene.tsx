@@ -61,7 +61,7 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
   }, []);
 
   useEffect(() => {
-    fetch("/data/SIDCity_Base_V2.json")
+    fetch("/data/SIDCity_Base_V3.json")
       .then((response) => {
         if (!response.ok) {
           throw new Error(response.statusText);
@@ -205,7 +205,7 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
           intensity={0.5}
           position={[12, 12, 8]}
         />
-        <color attach="background" args={[0x73bed3]} />
+        <color attach="background" args={[0x1a1528]} />
         <Camera
           aspect={windowWidth / windowHeight}
           mouseRightPressed={mouseRightPressed}

@@ -172,7 +172,7 @@ export class LdtkReader {
 
     // Generate blocks & rules
     this.GenerateBlocks();
-    this.addGrassAroundLand();
+    this.addBoundariesAroundLand();
     this.ApplyRules();
 
     return mappack;
@@ -576,7 +576,7 @@ export class LdtkReader {
     console.log("this.city after roads", this.city);
   }
 
-  addGrassAroundLand(): void {
+  addBoundariesAroundLand(): void {
     let copyCityGrid = JSON.parse(JSON.stringify(this.city));
 
     for (let y = 0; y < this.city.length; y++) {
@@ -596,7 +596,35 @@ export class LdtkReader {
                 // Check if the target cell is empty
                 if (copyCityGrid[y + yOffset][x + xOffset] === 0) {
                   // Mark the target cell as a road
-                  copyCityGrid[y + yOffset][x + xOffset] = 3;
+                  copyCityGrid[y + yOffset][x + xOffset] =
+                    this.idxToRule["Boundaries"];
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    for (let y = 0; y < this.city.length; y++) {
+      for (let x = 0; x < this.city[y].length; x++) {
+        // Check if the current cell is a Boundary
+        if (copyCityGrid[y][x] === this.idxToRule["Boundaries"]) {
+          // Go through the cells in a 1-unit radius around the current cell
+          for (let yOffset = -1; yOffset <= 1; yOffset++) {
+            for (let xOffset = -1; xOffset <= 1; xOffset++) {
+              // Check if the target cell is within the city grid
+              if (
+                y + yOffset >= 0 &&
+                y + yOffset < this.city.length &&
+                x + xOffset >= 0 &&
+                x + xOffset < this.city[y].length
+              ) {
+                // Check if the target cell is empty
+                if (copyCityGrid[y + yOffset][x + xOffset] === 0) {
+                  // Mark the target cell as Exterior
+                  copyCityGrid[y + yOffset][x + xOffset] =
+                    this.idxToRule["Exterior"];
                 }
               }
             }
@@ -606,6 +634,8 @@ export class LdtkReader {
     }
     this.city = copyCityGrid;
     console.log("this.city after grass", this.city);
+    console.log("ldtk", this.ldtk);
+    console.log("this.idxToRule", this.idxToRule);
   }
 
   CheckSpaceForRectangle(
