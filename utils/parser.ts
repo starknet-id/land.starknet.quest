@@ -241,7 +241,7 @@ export class LdtkReader {
   }
 
   GenerateBlocks(): void {
-    let blockMax = 3;
+    let blockMax = 2;
     let blockNb = 0;
 
     while (blockNb <= blockMax) {
@@ -933,10 +933,10 @@ export class LdtkReader {
     rectangleSize: THREE.Vector2,
     coordinates: { startX: number; startY: number; endX: number; endY: number }
   ): void {
-    console.log("entitiesSorted", this.entities);
+    // console.log("entitiesSorted", this.entities);
     // @ts-ignore
     let possibleCombinations = buildingsOrdered[rectangleSize.x - 2]; // substract sidewalk width
-    console.log("possibleCombinations", possibleCombinations);
+    // console.log("possibleCombinations", possibleCombinations);
 
     // start at a random index
     const rand = this.randomGround(rectangleSize.x + rectangleSize.y);
@@ -948,17 +948,17 @@ export class LdtkReader {
     while (counter < possibleCombinations.length) {
       let toBuild: EntityProps[] = [];
       let nftCounter = rectangleSize.x < 9 ? 2 : rectangleSize.x < 12 ? 3 : 4;
-      console.log("testing a new NFT combination", nftCounter);
+      // console.log("testing a new NFT combination", nftCounter);
 
       const combination = possibleCombinations[indexStart];
-      console.log("combination", combination);
+      // console.log("combination", combination);
 
       let isBuilt = true;
       let x = coordinates.startX + 1; // add sidewalk
       let y = coordinates.endY - 1 - 1; // substract sidewalk
 
       for (let i = 0; i < combination.length; i++) {
-        console.log("combination[i]", combination[i]);
+        // console.log("combination[i]", combination[i]);
 
         // Depending on leftNFts, we choose between NFT or Generic
         const leftNfts =
@@ -966,10 +966,10 @@ export class LdtkReader {
           copyEntities["NFT"][combination[i]].filter(
             (elem: EntityProps) => !elem.isBuilt
           );
-        console.log("leftNfts", leftNfts);
+        // console.log("leftNfts", leftNfts);
         const entityType =
           nftCounter > 0 && leftNfts && leftNfts.length > 0 ? "NFT" : "Generic";
-        console.log("entityType", entityType);
+        // console.log("entityType", entityType);
 
         if (
           entityType === "Generic" &&
@@ -1031,8 +1031,8 @@ export class LdtkReader {
       if (isBuilt) {
         this.entities = copyEntities;
         const shuffledBuildings = shuffleAndHandleCorners(toBuild, rand);
-        this.build(shuffledBuildings, x, y, rectangleSize);
-        // this.fillRemainingSpace(shuffledBuildings, rectangleSize, x, y);
+        this.build(shuffledBuildings, x, y);
+        this.fillRemainingSpace(rectangleSize, x, y);
         break;
       }
       if (indexStart === possibleCombinations.length - 1) indexStart = 0;
@@ -1044,12 +1044,7 @@ export class LdtkReader {
     // printSubArray(this.buildings, minX, maxX, minY, maxY);
   }
 
-  build(
-    entities: EntityProps[],
-    x: number,
-    y: number,
-    rectangleSize: THREE.Vector2
-  ): void {
+  build(entities: EntityProps[], x: number, y: number): void {
     entities.forEach((entity: EntityProps) => {
       const xOffset = entity.corner === "CornerLeft" ? x - 1 : x;
       for (
@@ -1075,6 +1070,91 @@ export class LdtkReader {
       }
       x = x + entity.activeWidth;
     });
+  }
+
+  fillRemainingSpace(rectangleSize: THREE.Vector2, x: number, y: number): void {
+    const innerWidth = rectangleSize.x - 2;
+    const innerHeight = rectangleSize.y - 2;
+    // console.log("innerHeight", innerHeight, "innerWidth", innerWidth);
+
+    for (let i = y; i > y - innerHeight - 1; i--) {
+      for (let j = x; j < x + innerWidth; j++) {
+        // console.log("y", i, "x", j);
+        const remainingWidth = x + innerWidth - j;
+        if (!this.buildings[i][j]) {
+          // console.log("empty space starting at y = ", i, "x = ", j);
+          let counter = 0;
+          // console.log("this.buidlings[i][j]", this.buildings[i][j]);
+          while (
+            !this.buildings[i][j + counter] &&
+            j + counter < x + innerWidth
+          ) {
+            console.log("counter", counter);
+            counter++;
+            if (counter === 100) break; // avoid infinite loop for debugging
+          }
+          console.log("SIZE NEW BUILDING", counter);
+
+          // if counter is too long we find a combination instead
+          if (counter > 5) {
+            console.log("COUNTER is to high", counter);
+            // @ts-ignore
+            const possibleCombinations = buildingsOrdered[counter].filter(
+              (combination: number[]) => !combination.includes(6)
+            ); // filter so we don't have 6s
+            counter = possibleCombinations[0][0];
+            console.log("counter updated", counter);
+          }
+
+          // todo: add conditions to have building of different sizes, not exactly the same as below
+
+          let entityIndex = -1;
+          while (entityIndex === -1) {
+            // find a random generic building
+            entityIndex = this.getRandomBuilding(counter, innerHeight + 1);
+            if (entityIndex === -1) counter++;
+            //todo : handle cases where there are no generic buildings left to place
+            if (counter === remainingWidth) break; // if buildings get out of rect bounds
+            if (counter === 100) break; // ensure no infinite loop for now
+          }
+
+          // console.log("entityIndex", entityIndex);
+          // console.log("entity", this.entities["Generic"][counter][entityIndex]);
+          let activeHeight =
+            this.entities["Generic"][counter][entityIndex].activeHeight;
+
+          // console.log(
+          //   "i",
+          //   i,
+          //   "activeHeight",
+          //   activeHeight,
+          //   "height",
+          //   height,
+          //   "rectangleSize.y",
+          //   rectangleSize.y,
+          //   "y",
+          //   y
+          // );
+
+          this.build(
+            [this.entities["Generic"][counter][entityIndex]],
+            j,
+            i + activeHeight
+          );
+        }
+      }
+    }
+  }
+
+  getRandomBuilding(width: number, maxHeight: number): number {
+    const copyEntities = JSON.parse(JSON.stringify(this.entities));
+    if (!copyEntities["Generic"][width]) return -1;
+    const entityIndex = copyEntities["Generic"][width].findIndex(
+      (elem: EntityProps) => !elem.isBuilt && elem.tileRect.h / 16 <= maxHeight
+    );
+    copyEntities["Generic"][width][entityIndex].isBuilt = true;
+    this.entities = copyEntities;
+    return entityIndex;
   }
 
   randomGround(spec: number): number {
