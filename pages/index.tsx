@@ -83,34 +83,31 @@ export default function Home() {
     <>
       <div className={styles.screen}>
         <div className={styles.container}>
-          <PixelModal
-            children={
-              <>
-                <div className="mb-5">
-                  Connect with a Starknet wallet to start exploring your land.
-                </div>
-                <Button
-                  onClick={
-                    isConnected
-                      ? () => disconnectByClick()
-                      : available.length === 1
-                      ? () => connect(available[0])
-                      : () => setHasWallet(true)
-                  }
-                >
-                  {isConnected ? (
-                    <div className="flex justify-center items-center">
-                      <div>{domainOrAddressMinified}</div>
-                      {/* <LogoutIcon className="ml-3" /> */}
-                    </div>
-                  ) : (
-                    "connect"
-                  )}
-                </Button>
-              </>
-            }
-            width={0}
-          />
+          <PixelModal width={0}>
+            <>
+              <div className="mb-5">
+                Connect with a Starknet wallet to start exploring your land.
+              </div>
+              <Button
+                onClick={
+                  isConnected
+                    ? () => disconnectByClick()
+                    : available.length === 1
+                    ? () => connect(available[0])
+                    : () => setHasWallet(true)
+                }
+              >
+                {isConnected ? (
+                  <div className="flex justify-center items-center">
+                    <div>{domainOrAddressMinified}</div>
+                    {/* <LogoutIcon className="ml-3" /> */}
+                  </div>
+                ) : (
+                  "connect"
+                )}
+              </Button>
+            </>
+          </PixelModal>
         </div>
       </div>
       <Wallets
@@ -120,7 +117,7 @@ export default function Home() {
     </>
   ) : (
     <div style={{ height: "100vh", width: "100vw", zIndex: "0" }}>
-      <Scene address={address as string} />
+      {/* <Scene address={address as string} /> */}
     </div>
   );
 }

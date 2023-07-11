@@ -132,7 +132,7 @@ export interface Entity {
   tilesetId?: number;
   tileId?: number;
   tileRenderMode: string;
-  tileRect?: TileRect;
+  tileRect: TileRect;
   maxCount: number;
   limitScope: string;
   limitBehavior: string;
@@ -408,7 +408,7 @@ export interface EntityProps {
   tilesetId?: number;
   tileId?: number;
   tileRenderMode: string;
-  tileRect?: TileRect;
+  tileRect: TileRect;
   maxCount: number;
   limitScope: string;
   limitBehavior: string;
@@ -418,7 +418,9 @@ export interface EntityProps {
   doc: string;
   // custom data
   activeWidth: number;
+  activeHeight: number;
   heightGroup: number;
   isBuilt: boolean;
   corner: string;
+  level: number;
 }

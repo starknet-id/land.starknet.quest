@@ -9,7 +9,7 @@ type IElem = {
   entity?: any;
 };
 
-export const BuildingItem = memo<IElem>(
+const BuildingItem = memo<IElem>(
   ({ tileset, tileData, pos, textureLoader, entity }): any => {
     const [localTexture, setLocalTexture] = useState<any>(null);
 
@@ -34,7 +34,7 @@ export const BuildingItem = memo<IElem>(
         setLocalTexture(localT);
         return localT;
       }
-    }, [textureLoader, tileset]);
+    }, [textureLoader, tileset, tileData]);
 
     return (
       <>
@@ -65,3 +65,6 @@ export const BuildingItem = memo<IElem>(
     );
   }
 );
+
+BuildingItem.displayName = "BuildingItem";
+export default BuildingItem;

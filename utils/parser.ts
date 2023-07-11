@@ -11,6 +11,7 @@ import {
   AspectNftProps,
   CityBuilded,
   CityBuildings,
+  CitySize,
   ClosestCorner,
 } from "@/types/types";
 import {
@@ -18,18 +19,19 @@ import {
   MAX_LAND_WIDTH,
   MIN_LAND_HEIGHT,
   MIN_LAND_WIDTH,
-  NFTAvailable,
   buildingsOrdered,
 } from "./constants";
 import {
   calculateCityCenter,
   convertTo2D,
+  decompose,
   findClosestCorner,
   getOffsetFromDirection,
   getSubArray,
   needsDirectionChange,
   printSubArray,
   setDirectionBasedOnCorner,
+  shuffleAndHandleCorners,
   shuffleArray,
 } from "./landUtils";
 
@@ -57,7 +59,7 @@ export class LdtkReader {
     endY: number;
   }> = [];
   userNft: AspectNftProps[];
-  entities: { [key: number]: EntityProps[] };
+  entities: { [key: string]: { [key: number]: EntityProps[] } };
   currentDirection: string | null;
 
   constructor(
@@ -93,46 +95,106 @@ export class LdtkReader {
     this.TILE_ROAD = this.idxToRule["Roads"];
     this.currentDirection = null;
 
-    this.entities = this.buildUserNft(userNft);
+    this.entities = this.sortEntities(userNft);
     this.userNft = userNft;
   }
 
-  buildUserNft(userNft: AspectNftProps[]): { [key: number]: EntityProps[] } {
-    // todo : compare with owned NFTs once the data in json are updated
-    let entities: { [key: number]: EntityProps[] } = {};
+  sortEntities(userNft: AspectNftProps[]) {
+    let entitiesSorted: { [key: string]: { [key: number]: EntityProps[] } } =
+      {};
     this.ldtk.defs.entities.forEach((entity: Entity) => {
       let heightGroup = 0;
       let activeWidth = 0;
+      let activeHeight = 0;
       let corner = "";
+      let level = 0;
+      let key = "";
       const splittedId = entity.identifier.split("_");
+
       if (splittedId[0] === "NFT") {
-        heightGroup = parseInt(splittedId[3][1]);
+        key = "NFT";
+        if (
+          splittedId.length === 5 &&
+          (splittedId[1].startsWith("BraavosMain") ||
+            splittedId[1].startsWith("ArgentMain"))
+        ) {
+          activeWidth = parseInt(splittedId[2][0]);
+          activeHeight = parseInt(splittedId[2][2]);
+          heightGroup = parseInt(splittedId[3][1]);
+          level = parseInt(splittedId[4][0]);
+        } else if (
+          splittedId.length === 5 &&
+          splittedId[1].startsWith("ArgentExplorer")
+        ) {
+          // we have to do this until we fix the json file
+          level = parseInt(splittedId[2][0]);
+          heightGroup = parseInt(splittedId[4][1]);
+          activeWidth = parseInt(splittedId[3][0]);
+          activeHeight = parseInt(splittedId[3][2]);
+        } else if (
+          splittedId.length === 5 &&
+          !splittedId[1].startsWith("BraavosMain") &&
+          !splittedId[1].startsWith("ArgentMain") &&
+          !splittedId[1].startsWith("ArgentExplorer")
+        ) {
+          // no levels but a corner
+          corner = splittedId[4];
+          heightGroup = parseInt(splittedId[3][1]);
+          activeWidth = parseInt(splittedId[2][0]);
+          activeHeight = parseInt(splittedId[2][2]);
+        } else {
+          heightGroup = parseInt(splittedId[3][1]);
+          activeWidth = parseInt(splittedId[2][0]);
+          activeHeight = parseInt(splittedId[2][2]);
+        }
+      } else if (splittedId[0] === "Generic") {
+        key = "Generic";
         activeWidth = parseInt(splittedId[2][0]);
-        if (splittedId[4]) corner = splittedId[4];
-      } else {
-        heightGroup = parseInt(splittedId[2][1]);
+        activeHeight = parseInt(splittedId[2][2]);
+        heightGroup = parseInt(splittedId[3][1]);
+      } else if (splittedId[0] === "Building") {
+        key = "Generic";
         activeWidth = parseInt(splittedId[1][0]);
+        activeHeight = parseInt(splittedId[1][2]);
+        heightGroup = parseInt(splittedId[2][1]);
       }
 
       const entityProps: EntityProps = {
         ...entity,
-        activeWidth: entity.tileRect ? entity.tileRect.w / 16 : activeWidth,
+        // activeWidth: entity.tileRect ? entity.tileRect.w / 16 : activeWidth,
+        // activeHeight: entity.tileRect ? entity.tileRect.h / 16 : activeHeight,
+        activeWidth,
+        activeHeight,
         heightGroup,
         isBuilt: false,
         corner,
+        level,
       };
-      if (!entities[activeWidth]) {
-        entities[activeWidth] = [];
+      if (!entitiesSorted[key]) entitiesSorted[key] = {};
+      if (!entitiesSorted[key][activeWidth]) {
+        entitiesSorted[key][activeWidth] = [];
       }
-      entities[activeWidth].push(entityProps);
+      entitiesSorted[key][activeWidth].push(entityProps);
     });
-    // Sort entities by height group
-    for (let activeWidth in entities) {
-      entities[activeWidth].sort((a: EntityProps, b: EntityProps) => {
-        return b.heightGroup - a.heightGroup;
-      });
+
+    for (let entityType in entitiesSorted) {
+      for (let activeWidth in entitiesSorted[entityType]) {
+        entitiesSorted[entityType][activeWidth].sort(
+          (a: EntityProps, b: EntityProps) => {
+            // First sort by activeWidth in descending order
+            if (a.activeWidth !== b.activeWidth) {
+              return b.activeWidth - a.activeWidth;
+            }
+            // If activeWidth is the same, sort by activeHeight in descending order
+            else {
+              return b.activeHeight - a.activeHeight;
+            }
+          }
+        );
+      }
     }
-    return entities;
+
+    return entitiesSorted;
   }
 
   CreateMap(levelName: string, tileset: string | string[]): any {
@@ -179,7 +241,7 @@ export class LdtkReader {
   }
 
   GenerateBlocks(): void {
-    let blockMax = 1;
+    let blockMax = 3;
     let blockNb = 0;
 
     while (blockNb <= blockMax) {
@@ -213,7 +275,7 @@ export class LdtkReader {
       const coordinates = this.PlaceRectangle(corner, blockSize);
       if (!coordinates) return;
       this.addRoadsAroundLand();
-      this.generateBuildings(corner, blockSize, coordinates);
+      this.generateBuildings(blockSize, coordinates);
     } else {
       this.findNextBlockCorners(blockSize);
     }
@@ -256,18 +318,28 @@ export class LdtkReader {
   // randomly choose where to start the next block of buildings
   FindRandomRoadTile(
     rectangleSize: THREE.Vector2,
-    direction: string
-  ): { x: number; y: number; direction: string } | null {
+    direction: string,
+    citySize: CitySize
+  ): { x: number; y: number; direction: string; corner: string } | null {
     let roadTiles = this.findValidRoadTiles(direction);
     if (roadTiles.length === 0) {
       return null;
     }
 
-    if (direction === "random") {
-      roadTiles.sort((a, b) => b.y - a.y);
-    } else if (direction === "top") {
-      roadTiles.sort((a, b) => a.y - b.y);
-    }
+    // if (direction === "random") {
+    //   roadTiles.sort((a, b) => b.y - a.y);
+    // } else if (direction === "top") {
+    //   roadTiles.sort((a, b) => a.y - b.y);
+    // }
+    // if (direction === "top") {
+    //   roadTiles.sort((a, b) => a.y - b.y || b.x - a.x);
+    // } else if (direction === "bottom") {
+    //   roadTiles.sort((a, b) => b.y - a.y || a.x - b.x);
+    // } else if (direction === "right") {
+    //   roadTiles.sort((a, b) => b.y - a.y || b.x - a.x);
+    // } else if (direction === "left") {
+    //   roadTiles.sort((a, b) => b.y - a.y || a.x - b.x);
+    // }
     console.log("possible roadTiles", roadTiles);
 
     let selectedRoadTile = false;
@@ -275,29 +347,33 @@ export class LdtkReader {
     while (!selectedRoadTile) {
       for (let roadTile of roadTiles) {
         let potentialTiles = [];
-        if (direction === "right") {
+        if (direction === "right" && roadTile.y > citySize.minY) {
           potentialTiles.push({
             x: roadTile.x + 1,
             y: roadTile.y,
             direction: "right",
+            corner: "bottomLeft",
           });
-        } else if (direction === "left") {
+        } else if (direction === "left" && roadTile.y > citySize.minY) {
           potentialTiles.push({
             x: roadTile.x - 1,
             y: roadTile.y,
             direction: "left",
+            corner: "topRight",
           });
-        } else if (direction === "top") {
+        } else if (direction === "top" && roadTile.x < citySize.maxX) {
           potentialTiles.push({
             x: roadTile.x,
             y: roadTile.y - 1,
             direction: "top",
+            corner: "bottomRight",
           });
-        } else if (direction === "bottom") {
+        } else if (direction === "bottom" && roadTile.x > citySize.minX) {
           potentialTiles.push({
             x: roadTile.x,
             y: roadTile.y + 1,
             direction: "bottom",
+            corner: "topLeft",
           });
         }
         console.log("potentialTiles", potentialTiles);
@@ -445,16 +521,26 @@ export class LdtkReader {
       !closestCorner ||
       needsDirectionChange(closestCorner, subArr, blockSize)
     ) {
-      console.log("need change dir");
+      console.log("need change dir", this.currentDirection);
+      console.log("citySize", citySize);
       this.changeDirection(citySize);
-      let roadTile = this.FindRandomRoadTile(blockSize, this.currentDirection);
+      console.log("new direction", this.currentDirection);
+      let roadTile = this.FindRandomRoadTile(
+        blockSize,
+        this.currentDirection,
+        citySize
+      );
+      console.log("roadTile 1", roadTile);
       if (roadTile) {
-        const coordinates = this.PlaceRectangle(roadTile, blockSize);
-        this.generateBuildings(roadTile, blockSize, coordinates as any);
+        const coordinates = this.PlaceRectangle(
+          { x: roadTile.x, y: roadTile.y, direction: roadTile.corner },
+          blockSize
+        );
+        this.generateBuildings(blockSize, coordinates as any);
         this.addRoadsAroundLand();
       }
     } else {
-      this.PlaceRectangle(
+      const coordinates = this.PlaceRectangle(
         {
           x: closestCorner.col + citySize.minX,
           y: closestCorner.row + citySize.minY,
@@ -463,11 +549,12 @@ export class LdtkReader {
         blockSize
       );
       this.addRoadsAroundLand();
+      this.generateBuildings(blockSize, coordinates as any);
       this.currentDirection = setDirectionBasedOnCorner(closestCorner);
     }
   }
 
-  calculateCitySize() {
+  calculateCitySize(): CitySize {
     const { minX, maxX, minY, maxY } = this.findCitySize();
     const citySizeX = maxX - minX + 1;
     const citySizeY = maxY - minY + 1;
@@ -489,7 +576,7 @@ export class LdtkReader {
       this.currentDirection !== "left"
     ) {
       this.currentDirection =
-        this.currentDirection === "right" ? "top" : "bottom";
+        this.currentDirection === "top" ? "left" : "right";
     }
   }
 
@@ -643,6 +730,7 @@ export class LdtkReader {
     rectangleSize: THREE.Vector2,
     direction: string
   ): boolean {
+    console.log("CORNER", corner);
     // Define increments for each direction
     let increments: { [key: string]: { x: number; y: number } } = {
       top: { x: 0, y: -1 },
@@ -654,6 +742,8 @@ export class LdtkReader {
     // Calculate the end points based on the direction
     let endX = corner.x + increment.x * rectangleSize.x;
     let endY = corner.y + increment.y * rectangleSize.y;
+
+    console.log("endX", endX, "endY", endY, "corner", corner);
 
     // Check if the rectangle would go out of bounds
     if (
@@ -669,12 +759,26 @@ export class LdtkReader {
     // Check if the area required for the rectangle is empty
     for (let y = corner.y; y !== endY; y += increment.y) {
       for (let x = corner.x; x !== endX; x += increment.x) {
+        console.log("(y, x)", y, x);
         // If the current tile is not empty (0), return false
         if (this.city[y][x] !== 0) {
           return false;
         }
       }
     }
+
+    // Check corner type
+    let cornerType = "";
+    if (corner.x < this.citySize / 2 && corner.y < this.citySize / 2) {
+      cornerType = "TopLeft";
+    } else if (corner.x >= this.citySize / 2 && corner.y < this.citySize / 2) {
+      cornerType = "TopRight";
+    } else if (corner.x < this.citySize / 2 && corner.y >= this.citySize / 2) {
+      cornerType = "BottomLeft";
+    } else {
+      cornerType = "BottomRight";
+    }
+    console.log("cornerType", cornerType);
     return true;
   }
 
@@ -825,14 +929,16 @@ export class LdtkReader {
   }
 
   generateBuildings(
-    corner: { x: number; y: number; direction: string },
+    // corner: { x: number; y: number; direction: string },
     rectangleSize: THREE.Vector2,
     coordinates: { startX: number; startY: number; endX: number; endY: number }
   ): void {
+    console.log("entitiesSorted", this.entities);
     // @ts-ignore
     let possibleCombinations = buildingsOrdered[rectangleSize.x - 2]; // substract sidewalk width
     console.log("possibleCombinations", possibleCombinations);
 
+    // start at a random index
     const rand = this.randomGround(rectangleSize.x + rectangleSize.y);
     let indexStart = Math.floor(rand * possibleCombinations.length);
 
@@ -840,61 +946,79 @@ export class LdtkReader {
 
     let counter = 0;
     while (counter < possibleCombinations.length) {
+      let toBuild: EntityProps[] = [];
+      let nftCounter = rectangleSize.x < 9 ? 2 : rectangleSize.x < 12 ? 3 : 4;
+      console.log("testing a new NFT combination", nftCounter);
+
       const combination = possibleCombinations[indexStart];
       console.log("combination", combination);
-      // shuffle the building
-      const randCombination = shuffleArray(combination, rand);
-      console.log("randCombination", randCombination);
 
       let isBuilt = true;
       let x = coordinates.startX + 1; // add sidewalk
       let y = coordinates.endY - 1 - 1; // substract sidewalk
 
-      for (let i = 0; i < randCombination.length; i++) {
-        console.log("randCombination[i]", randCombination[i]);
-        const entityIndex = copyEntities[randCombination[i]].findIndex(
-          (elem: EntityProps) =>
-            !elem.isBuilt &&
-            NFTAvailable.includes(elem.identifier) &&
-            (elem.corner ===
-              (i === 0
-                ? "CornerLeft"
-                : i === randCombination.length - 1
-                ? "CornerRight"
-                : "") ||
-              elem.corner === "")
+      for (let i = 0; i < combination.length; i++) {
+        console.log("combination[i]", combination[i]);
+
+        // Depending on leftNFts, we choose between NFT or Generic
+        const leftNfts =
+          copyEntities["NFT"][combination[i]] &&
+          copyEntities["NFT"][combination[i]].filter(
+            (elem: EntityProps) => !elem.isBuilt
+          );
+        console.log("leftNfts", leftNfts);
+        const entityType =
+          nftCounter > 0 && leftNfts && leftNfts.length > 0 ? "NFT" : "Generic";
+        console.log("entityType", entityType);
+
+        if (
+          entityType === "Generic" &&
+          !copyEntities["Generic"][combination[i]]
+        ) {
+          isBuilt = false;
+          break;
+        }
+        // Check if an entity with 'CornerLeft' or 'CornerRight' already exists in the 'toBuild' array
+        const hasCornerLeft = toBuild.some(
+          (entity: EntityProps) => entity.corner === "CornerLeft"
+        );
+        const hasCornerRight = toBuild.some(
+          (entity: EntityProps) => entity.corner === "CornerRight"
         );
 
-        console.log(
-          "entitiesLeft",
-          this.entities[randCombination[i]][entityIndex]
-        );
-        if (entityIndex !== -1) {
-          // if entity is found
-          const entity = copyEntities[randCombination[i]][entityIndex];
-          for (let w = 0; w < entity.activeWidth; w++) {
-            for (let h = 0; h < entity.tileRect.h / 16; h++) {
-              if (w === 0 && h === 0) {
-                this.buildings[y][x] = {
-                  tile: entity.tileRect,
-                  isOccupied: true,
-                  isHidden: false,
-                };
-              } else {
-                this.buildings[y - h][x + w] = {
-                  tile: null,
-                  isOccupied: false,
-                  isHidden: true,
-                };
+        copyEntities[entityType][combination[i]].sort(
+          (a: EntityProps, b: EntityProps) => {
+            if (entityType === "Generic") {
+              if (
+                a.tileRect.h / 16 === rectangleSize.y &&
+                b.tileRect.h / 16 !== rectangleSize.y
+              ) {
+                return -1;
+              } else if (
+                b.tileRect.h / 16 === rectangleSize.y &&
+                a.tileRect.h / 16 !== rectangleSize.y
+              ) {
+                return 1;
               }
             }
+            return b.tileRect.h / 16 - a.tileRect.h / 16;
           }
-          copyEntities[randCombination[i]][entityIndex].isBuilt = true;
-          console.log(
-            "building",
-            copyEntities[randCombination[i]][entityIndex]
-          );
-          x = x + entity.activeWidth;
+        );
+
+        // Find next NFT Index from left buildings
+        const entityIndex = copyEntities[entityType][combination[i]].findIndex(
+          (elem: EntityProps) =>
+            !elem.isBuilt &&
+            ((hasCornerLeft && elem.corner !== "CornerLeft") ||
+              (hasCornerRight && elem.corner !== "CornerRight") ||
+              (!hasCornerLeft && !hasCornerRight))
+        );
+        if (entityIndex !== -1) {
+          // if entity is found, we keep it
+          const entity = copyEntities[entityType][combination[i]][entityIndex];
+          toBuild.push(entity);
+          copyEntities[entityType][combination[i]][entityIndex].isBuilt = true;
+          if (entityType === "NFT") nftCounter--;
         } else {
           console.log(
             "not enough NFTs to build this combination, let's try the next one"
@@ -906,6 +1030,9 @@ export class LdtkReader {
 
       if (isBuilt) {
         this.entities = copyEntities;
+        const shuffledBuildings = shuffleAndHandleCorners(toBuild, rand);
+        this.build(shuffledBuildings, x, y, rectangleSize);
+        // this.fillRemainingSpace(shuffledBuildings, rectangleSize, x, y);
         break;
       }
       if (indexStart === possibleCombinations.length - 1) indexStart = 0;
@@ -915,6 +1042,39 @@ export class LdtkReader {
     // print subArray of buildings
     // const { minX, maxX, minY, maxY } = this.findCitySize();
     // printSubArray(this.buildings, minX, maxX, minY, maxY);
+  }
+
+  build(
+    entities: EntityProps[],
+    x: number,
+    y: number,
+    rectangleSize: THREE.Vector2
+  ): void {
+    entities.forEach((entity: EntityProps) => {
+      const xOffset = entity.corner === "CornerLeft" ? x - 1 : x;
+      for (
+        let w = 0;
+        w < (entity.corner ? entity.activeWidth + 1 : entity.activeWidth);
+        w++
+      ) {
+        for (let h = 0; h < entity?.tileRect.h / 16; h++) {
+          if (w === 0 && h === 0) {
+            this.buildings[y][xOffset] = {
+              tile: entity.tileRect,
+              isOccupied: true,
+              isHidden: false,
+            };
+          } else {
+            this.buildings[y - h][xOffset + w] = {
+              tile: null,
+              isOccupied: false,
+              isHidden: true,
+            };
+          }
+        }
+      }
+      x = x + entity.activeWidth;
+    });
   }
 
   randomGround(spec: number): number {

@@ -1,3 +1,4 @@
+import { EntityProps } from "@/types/ldtk";
 import { ClosestCorner } from "@/types/types";
 
 export const convertTo2D = (array: Array<number>, size: number) => {
@@ -129,7 +130,7 @@ export const decompose = (
     }
   } else {
     // Try subtracting 2, 3, 4, and 5 from n
-    for (let i = 2; i <= 5; i++) {
+    for (let i = 2; i <= 6; i++) {
       if (n - i >= 0) {
         decompose(n - i, [...curr, i], solutions);
       }
@@ -146,6 +147,40 @@ export const shuffleArray = (array: number[], rand: number) => {
     [array[i], array[j]] = [array[j], array[i]];
   }
   return array;
+};
+
+export const shuffleAndHandleCorners = (
+  array: EntityProps[],
+  rand: number
+): EntityProps[] => {
+  const cornerLeftEntity = array.find(
+    (entity) => entity.corner === "CornerLeft"
+  );
+  const cornerRightEntity = array.find(
+    (entity) => entity.corner === "CornerRight"
+  );
+  let restOfEntities = array.filter(
+    (entity) =>
+      entity.corner !== "CornerLeft" && entity.corner !== "CornerRight"
+  );
+
+  for (let i = restOfEntities.length - 1; i > 0; i--) {
+    let j = Math.floor(rand * (i + 1));
+    [restOfEntities[i], restOfEntities[j]] = [
+      restOfEntities[j],
+      restOfEntities[i],
+    ];
+  }
+
+  if (cornerLeftEntity) {
+    restOfEntities.unshift(cornerLeftEntity);
+  }
+
+  if (cornerRightEntity) {
+    restOfEntities.push(cornerRightEntity);
+  }
+
+  return restOfEntities;
 };
 
 const distance = (

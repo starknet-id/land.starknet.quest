@@ -1,6 +1,6 @@
 import React, { ReactNode, useMemo } from "react";
 import { TextureLoader, RepeatWrapping, NearestFilter, Vector2 } from "three";
-import { ResourceItem } from "./Item";
+import ResourceItem from "./Item";
 import { CityBuilded } from "@/types/types";
 
 type IGround = {

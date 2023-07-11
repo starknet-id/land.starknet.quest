@@ -66,3 +66,12 @@ export interface Size {
   x: number;
   y: number;
 }
+
+export interface CitySize {
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+  citySizeX: number;
+  citySizeY: number;
+}

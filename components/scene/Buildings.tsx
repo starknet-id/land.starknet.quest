@@ -1,26 +1,35 @@
 import React, { ReactNode, useMemo } from "react";
 import { TextureLoader, RepeatWrapping, NearestFilter, Vector2 } from "three";
 import { CityBuildings } from "@/types/types";
-import { BuildingItem } from "./BuildingItem";
+import BuildingItem from "./BuildingItem";
+import { Tileset } from "@/types/ldtk";
 
 type IBuildings = {
-  tileset: any;
+  tilesets: Tileset[];
   buildingData: any;
 };
 
 export default function Buildings({
-  tileset,
+  tilesets,
   buildingData,
 }: IBuildings): ReactNode {
   // Loading textures
   const textureLoader = useMemo(() => {
-    let textObj;
-    textObj = new TextureLoader().load("/textures/SID_BuildingSheet.png");
-    textObj.repeat = new Vector2(1 / tileset.__cHei, 1 / tileset.__cWid);
-    textObj.magFilter = NearestFilter;
-    textObj.wrapS = RepeatWrapping;
-    textObj.wrapT = RepeatWrapping;
-    return textObj;
+    let textures: any[] = [];
+    tilesets.forEach((tileset) => {
+      if (tileset.uid !== 1) {
+        let textObj;
+        textObj = new TextureLoader().load(
+          `/textures/${tileset.identifier}.png`
+        );
+        textObj.repeat = new Vector2(1 / tileset.__cHei, 1 / tileset.__cWid);
+        textObj.magFilter = NearestFilter;
+        textObj.wrapS = RepeatWrapping;
+        textObj.wrapT = RepeatWrapping;
+        textures[tileset.uid] = textObj;
+      }
+    });
+    return textures;
   }, []);
 
   return (
@@ -38,8 +47,12 @@ export default function Buildings({
             return (
               <BuildingItem
                 key={`building-${iX}-${iY}`}
-                tileset={tileset}
-                textureLoader={textureLoader}
+                tileset={
+                  tilesets.filter(
+                    (tileset) => tileset.uid === tileData.tile.tilesetUid
+                  )[0]
+                }
+                textureLoader={textureLoader[tileData.tile.tilesetUid]}
                 tileData={tileData.tile}
                 pos={{ posX: iX, posY: iY }}
               />

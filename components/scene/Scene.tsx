@@ -234,7 +234,7 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
 
         {data && buildingData ? (
           <Buildings
-            tileset={data?.defs.tilesets[2]}
+            tilesets={data?.defs.tilesets}
             buildingData={buildingData}
           />
         ) : null}

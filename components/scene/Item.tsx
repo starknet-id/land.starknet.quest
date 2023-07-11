@@ -10,7 +10,7 @@ type IElem = {
   entity?: any;
 };
 
-export const ResourceItem = memo<IElem>(
+const ResourceItem = memo<IElem>(
   ({ tileset, tileData, pos, textureLoader, entity }): any => {
     const meshRef = useRef<any>();
     const [localTexture, setLocalTexture] = useState<any>(null);
@@ -31,7 +31,7 @@ export const ResourceItem = memo<IElem>(
         setLocalTexture(localT);
         return localT;
       }
-    }, [textureLoader, tileset]);
+    }, [textureLoader, tileset, tileData]);
 
     useFrame(() => {
       if (!meshRef || !meshRef.current) {
@@ -79,3 +79,6 @@ export const ResourceItem = memo<IElem>(
     );
   }
 );
+
+ResourceItem.displayName = "ResourceItem";
+export default ResourceItem;
