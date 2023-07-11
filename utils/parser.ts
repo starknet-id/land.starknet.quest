@@ -1079,71 +1079,57 @@ export class LdtkReader {
 
     for (let i = y; i > y - innerHeight - 1; i--) {
       for (let j = x; j < x + innerWidth; j++) {
-        // console.log("y", i, "x", j);
         const remainingWidth = x + innerWidth - j;
         if (!this.buildings[i][j]) {
-          // console.log("empty space starting at y = ", i, "x = ", j);
-          let counter = 0;
-          // console.log("this.buidlings[i][j]", this.buildings[i][j]);
-          while (
-            !this.buildings[i][j + counter] &&
-            j + counter < x + innerWidth
-          ) {
-            console.log("counter", counter);
-            counter++;
-            if (counter === 100) break; // avoid infinite loop for debugging
-          }
-          console.log("SIZE NEW BUILDING", counter);
-
-          // if counter is too long we find a combination instead
-          if (counter > 5) {
-            console.log("COUNTER is to high", counter);
-            // @ts-ignore
-            const possibleCombinations = buildingsOrdered[counter].filter(
-              (combination: number[]) => !combination.includes(6)
-            ); // filter so we don't have 6s
-            counter = possibleCombinations[0][0];
-            console.log("counter updated", counter);
-          }
-
-          // todo: add conditions to have building of different sizes, not exactly the same as below
-
-          let entityIndex = -1;
-          while (entityIndex === -1) {
-            // find a random generic building
-            entityIndex = this.getRandomBuilding(counter, innerHeight + 1);
-            if (entityIndex === -1) counter++;
-            //todo : handle cases where there are no generic buildings left to place
-            if (counter === remainingWidth) break; // if buildings get out of rect bounds
-            if (counter === 100) break; // ensure no infinite loop for now
-          }
-
-          // console.log("entityIndex", entityIndex);
-          // console.log("entity", this.entities["Generic"][counter][entityIndex]);
-          let activeHeight =
-            this.entities["Generic"][counter][entityIndex].activeHeight;
-
-          // console.log(
-          //   "i",
-          //   i,
-          //   "activeHeight",
-          //   activeHeight,
-          //   "height",
-          //   height,
-          //   "rectangleSize.y",
-          //   rectangleSize.y,
-          //   "y",
-          //   y
-          // );
-
-          this.build(
-            [this.entities["Generic"][counter][entityIndex]],
-            j,
-            i + activeHeight
+          const counter = this.findCounter(i, j, x + innerWidth);
+          const entityIndex = this.findEntityIndex(
+            counter,
+            innerHeight + 1,
+            remainingWidth
           );
+          if (entityIndex !== -1) {
+            console.log("counter", counter);
+            const entity = this.entities["Generic"][counter][entityIndex];
+            const activeHeight = entity.activeHeight;
+            this.build([entity], j, i + activeHeight);
+          }
         }
       }
     }
+  }
+
+  findCounter(i: number, j: number, limit: number): number {
+    let counter = 0;
+    while (
+      (!this.buildings[i][j + counter] ||
+        !this.buildings[i][j + counter]?.isOccupied) &&
+      j + counter < limit
+    ) {
+      counter++;
+      if (counter === 100) break; // todo: remove this as it's for debugging
+    }
+    if (counter > 5) {
+      // @ts-ignore
+      const possibleCombinations = buildingsOrdered[counter].filter(
+        (combination: number[]) => !combination.includes(6)
+      );
+      counter = possibleCombinations[0][0];
+    }
+    return counter;
+  }
+
+  findEntityIndex(
+    counter: number,
+    innerHeight: number,
+    remainingWidth: number
+  ): number {
+    let entityIndex = -1;
+    while (entityIndex === -1) {
+      entityIndex = this.getRandomBuilding(counter, innerHeight + 1);
+      if (entityIndex === -1) counter++;
+      if (counter === remainingWidth || counter === 100) break;
+    }
+    return entityIndex;
   }
 
   getRandomBuilding(width: number, maxHeight: number): number {
