@@ -8,6 +8,7 @@ import { iLDtk } from "@/types/ldtk";
 import { AspectNftProps } from "@/types/types";
 import Buildings from "./Buildings";
 import { Grid } from "@react-three/drei";
+import { useGesture } from "react-use-gesture";
 
 type SceneProps = {
   address: string;
@@ -152,74 +153,35 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
     };
   }, []);
 
-  // Mobile controls
-  useEffect(() => {
-    let startX = 0; // These will hold the start x and y coordinates
-    let startY = 0;
+  const bind = useGesture({
+    onDrag: ({ down, movement: [mx, my], tap, swipe: [sx] }) => {
+      setCustomMouse(
+        new Vector2(
+          (mx / window.innerWidth) * 2 - 1,
+          -(my / window.innerHeight) * 2 + 1
+        )
+      );
 
-    // This will hold the time of the first tap to check for double taps
-    let tapTime = 0;
+      // Left mouse button equivalents
+      if (tap) {
+        setMouseLeftPressed(down ? 1 : 0);
+      }
 
-    const handleTouchStart = (event: any) => {
-      // Store the starting x and y coordinates when touch starts
-      startX = event.touches[0].clientX;
-      startY = event.touches[0].clientY;
-    };
+      // Middle mouse button equivalents
+      // Triggered by a horizontal swipe
+      if (sx !== 0) {
+        setMouseMiddlePressed(down ? 1 : 0);
+      }
 
-    const handleTouchEnd = (event: any) => {
-      const distX = event.changedTouches[0].clientX - startX; // X distance
-      const distY = event.changedTouches[0].clientY - startY; // Y distance
-
-      // Detect swipe in the X or Y direction
-      if (Math.abs(distX) > Math.abs(distY)) {
-        // Swiping in the X direction
-        if (distX > 0) {
-          // Swipe to the right (simulate ArrowRight key)
-          setKeyMap((m) => ({ ...m, ArrowRight: true }));
-          setTimeout(
-            () => setKeyMap((m) => ({ ...m, ArrowRight: false })),
-            100
-          );
-        } else {
-          // Swipe to the left (simulate ArrowLeft key)
-          setKeyMap((m) => ({ ...m, ArrowLeft: true }));
-          setTimeout(() => setKeyMap((m) => ({ ...m, ArrowLeft: false })), 100);
-        }
+      // Right mouse button equivalents
+      // Triggered by a long press (no drag)
+      if (!down && !tap && sx === 0) {
+        setMouseRightPressed(1);
       } else {
-        // Swiping in the Y direction
-        if (distY > 0) {
-          // Swipe down (simulate ArrowDown key)
-          setKeyMap((m) => ({ ...m, ArrowDown: true }));
-          setTimeout(() => setKeyMap((m) => ({ ...m, ArrowDown: false })), 100);
-        } else {
-          // Swipe up (simulate ArrowUp key)
-          setKeyMap((m) => ({ ...m, ArrowUp: true }));
-          setTimeout(() => setKeyMap((m) => ({ ...m, ArrowUp: false })), 100);
-        }
+        setMouseRightPressed(0);
       }
-
-      // Handle double tap
-      const now = new Date().getTime();
-      if (now - tapTime < 500) {
-        // A double tap is defined as two taps within 500ms
-        // Double tap detected (simulate wheel event)
-        if (indexRef.current > 4 && indexRef.current < 20) {
-          setIndex(() => indexRef.current + (distY > 0 ? 1 : -1));
-        }
-      }
-      tapTime = now;
-    };
-
-    document.addEventListener("touchstart", handleTouchStart, {
-      passive: true,
-    });
-    document.addEventListener("touchend", handleTouchEnd, { passive: true });
-
-    return () => {
-      document.removeEventListener("touchstart", handleTouchStart);
-      document.removeEventListener("touchend", handleTouchEnd);
-    };
-  }, []);
+    },
+  });
 
   return (
     <>
@@ -228,6 +190,7 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
         gl={{ antialias: false, toneMapping: NoToneMapping }}
         linear
         ref={refCanvas}
+        {...bind()}
         onCreated={() => {
           //   setFrontBlockArray(mapArray);
         }}
