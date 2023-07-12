@@ -1,23 +1,41 @@
-import React, { useLayoutEffect, useRef, useState, useMemo } from "react";
+import React, {
+  useLayoutEffect,
+  useRef,
+  useState,
+  useMemo,
+  FunctionComponent,
+} from "react";
 import { useThree, useFrame } from "@react-three/fiber";
 import { PerspectiveCamera } from "@react-three/drei";
 import { Vector2 } from "three";
 
-export const Camera = (props: any) => {
+type CameraProps = {
+  aspect: number;
+  mouseRightPressed?: number;
+  mouseWheelProp?: number;
+  index: number;
+  citySize: number;
+};
+
+export const Camera: FunctionComponent<CameraProps> = ({
+  aspect,
+  mouseRightPressed,
+  mouseWheelProp,
+  index,
+  citySize,
+}) => {
   const cameraRef = useRef<THREE.PerspectiveCamera>();
   const set = useThree(({ set }) => set);
   const size = useThree(({ size }) => size);
-
-  const { mouseRightPressed, mouseWheelProp } = props;
   const [tempMousePos, setTempMousePos] = useState(new Vector2(0, 0));
   const [cameraPositionX, setCameraPositionX] = useState(
-    Math.floor(props.citySize / 2)
+    Math.floor(citySize / 2)
   );
   const [cameraPositionY, setCameraPositionY] = useState(
-    Math.floor(props.citySize * 3)
+    Math.floor(citySize * 3)
   );
   const [cameraPositionZ, setCameraPositionZ] = useState(
-    Math.floor(props.citySize / 2)
+    Math.floor(citySize / 2)
   );
   const [zoom, setZoom] = useState(0);
   const [wayX, setWayX] = useState(0);
@@ -28,7 +46,6 @@ export const Camera = (props: any) => {
     console.log(mouseWheelProp);
     if (mouseWheelProp != null) {
       setZoom(1);
-      console.log("mouseWheelProp", mouseWheelProp);
       return mouseWheelProp;
     }
   }, [mouseWheelProp]);
@@ -36,7 +53,7 @@ export const Camera = (props: any) => {
   useFrame(({ mouse }) => {
     if (cameraRef.current != null) {
       // CLASSIC INPUTS
-      setCameraPositionY(15 * props.index);
+      setCameraPositionY(15 * index);
       if (mouseRightPressed == 1) {
         const posX = cameraPositionX;
         const posZ = cameraPositionZ;
@@ -54,7 +71,7 @@ export const Camera = (props: any) => {
             setCameraPositionX(cameraPositionX - mouseMove.x);
           }
         } else if (tempMousePos.x > mouse.x) {
-          if (cameraPositionX < props.citySize) {
+          if (cameraPositionX < citySize) {
             mouseMove.x = 0.1 * difX;
             setCameraPositionX(cameraPositionX + mouseMove.x);
           }
@@ -62,7 +79,7 @@ export const Camera = (props: any) => {
           mouseMove.x = 0;
         }
         if (tempMousePos.y < mouse.y) {
-          if (cameraPositionZ < props.citySize) {
+          if (cameraPositionZ < citySize) {
             mouseMove.y = 0.1 * difY;
             setCameraPositionZ(cameraPositionZ + mouseMove.y);
           }
@@ -169,7 +186,7 @@ export const Camera = (props: any) => {
         near={1}
         far={1000}
         rotation={[-Math.PI * 0.5, 0, 0]}
-        {...props}
+        aspect={aspect}
       />
     </>
   );

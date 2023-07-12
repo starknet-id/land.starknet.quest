@@ -154,13 +154,22 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
   }, []);
 
   const bind = useGesture({
-    onDrag: ({ down, movement: [mx, my], tap, swipe: [sx] }) => {
-      setCustomMouse(
-        new Vector2(
-          (mx / window.innerWidth) * 2 - 1,
-          -(my / window.innerHeight) * 2 + 1
-        )
-      );
+    onDrag: ({ down, movement: [mx, my], tap, swipe: [sx], event }) => {
+      if (event.clientX === 0 && event.clientY === 0) {
+        setCustomMouse(
+          new Vector2(
+            (event.clientX / window.innerWidth) * 2 - 1,
+            -(event.clientY / window.innerHeight) * 2 + 1
+          )
+        );
+      } else {
+        setCustomMouse(
+          new Vector2(
+            (mx / window.innerWidth) * 2 - 1,
+            -(my / window.innerHeight) * 2 + 1
+          )
+        );
+      }
 
       // Left mouse button equivalents
       if (tap) {
@@ -176,9 +185,9 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
       // Right mouse button equivalents
       // Triggered by a long press (no drag)
       if (!down && !tap && sx === 0) {
-        setMouseRightPressed(1);
-      } else {
         setMouseRightPressed(0);
+      } else {
+        setMouseRightPressed(1);
       }
     },
   });
@@ -191,41 +200,18 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
         linear
         ref={refCanvas}
         {...bind()}
-        onCreated={() => {
-          //   setFrontBlockArray(mapArray);
-        }}
+        // onCreated={() => {
+        // }}
         onMouseDown={(event) => {
-          if (event.button == 2) {
-            setMouseRightPressed(1);
-          }
-          if (event.button == 0) {
-            event.preventDefault;
-            setMouseLeftPressed(1);
-          }
           if (event.button == 1) {
             setMouseMiddlePressed(1);
           }
         }}
         onMouseUp={(event) => {
           event.stopPropagation();
-          if (event.button == 2) {
-            setMouseRightPressed(0);
-          }
-          if (event.button == 0) {
-            event.preventDefault;
-            setMouseLeftPressed(0);
-          }
           if (event.button == 1) {
             setMouseMiddlePressed(0);
           }
-        }}
-        onMouseMove={(event) => {
-          setCustomMouse(
-            new Vector2(
-              (event.clientX / window.innerWidth) * 2 - 1,
-              -(event.clientY / window.innerHeight) * 2 + 1
-            )
-          );
         }}
         onContextMenu={(event) => {
           event.preventDefault();
