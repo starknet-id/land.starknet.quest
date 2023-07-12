@@ -9,6 +9,7 @@ import { AspectNftProps } from "@/types/types";
 import Buildings from "./Buildings";
 import { Grid } from "@react-three/drei";
 import { useGesture } from "react-use-gesture";
+import CityProps from "./CityProps";
 
 type SceneProps = {
   address: string;
@@ -38,6 +39,7 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
   const [landTilesets, setLandTilesets] = useState<any>(null);
   const [entities, setEntities] = useState<any>(null);
   const [cityData, setCityData] = useState<any>(null);
+  const [propsData, setPropsData] = useState<any>(null);
   const [buildingData, setBuildingData] = useState<any>(null);
   const [citySize, setCitySize] = useState(60);
   const [nftArray, setNftArray] = useState<any>(null);
@@ -52,6 +54,7 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
       console.log("createTest", createTest);
 
       setCityData(mapReader.cityBuilded);
+      setPropsData(mapReader.cityProps);
       setBuildingData(mapReader.buildings);
     }
   }, [data]);
@@ -217,7 +220,7 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
           event.preventDefault();
         }}
       >
-        <ambientLight color={0xffffff} intensity={0.9} />
+        {/* <ambientLight color={0xffffff} intensity={0.9} /> */}
         <directionalLight
           color={0xffffff}
           intensity={0.5}
@@ -248,6 +251,10 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
 
         {data && cityData ? (
           <Ground tileset={data?.defs.tilesets[0]} cityData={cityData} />
+        ) : null}
+
+        {data && propsData ? (
+          <CityProps tilesets={data?.defs.tilesets} cityData={propsData} />
         ) : null}
 
         {data && buildingData ? (

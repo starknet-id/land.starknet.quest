@@ -1,4 +1,5 @@
 import { number } from "starknet";
+import { Entity } from "./ldtk";
 
 type Identity = {
   id: string;
@@ -49,6 +50,11 @@ export interface CityBuildings {
   isHidden: boolean;
 }
 
+export interface CityProps {
+  entity: EntityProps;
+  corner?: string;
+}
+
 export interface ClosestCorner {
   h: number;
   w: number;
@@ -74,4 +80,10 @@ export interface CitySize {
   maxY: number;
   citySizeX: number;
   citySizeY: number;
+}
+
+export interface pointLightProps {
+  intensity: number;
+  color: string;
+  z: number;
 }

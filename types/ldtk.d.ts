@@ -423,4 +423,5 @@ export interface EntityProps {
   isBuilt: boolean;
   corner: string;
   level: number;
+  customData: string | null;
 }

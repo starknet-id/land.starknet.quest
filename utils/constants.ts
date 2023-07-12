@@ -1,3 +1,4 @@
+import { pointLightProps } from "@/types/types";
 import { hexToDecimal } from "./feltService";
 
 export const basicAlphabet = "abcdefghijklmnopqrstuvwxyz0123456789-";
@@ -25,6 +26,26 @@ export const MAX_LAND_WIDTH = 16;
 export const MIN_LAND_HEIGHT = 6;
 export const MAX_LAND_HEIGHT = 7;
 export const ROAD_SIZE = 2;
+export const TILE_EMPTY = 0;
+
+export const pointLightsData: { [key: string]: pointLightProps } = {
+  testlight: {
+    intensity: 0.5,
+    color: "0xffffff",
+    z: 23.2,
+  },
+};
+
+export const propsOffset: {
+  [key: string]: { [key: string]: { x: number; y: number } };
+} = {
+  Props_StreetLight: {
+    topLeft: { x: 0, y: 0 },
+    topRight: { x: -0.2, y: 0 },
+    bottomLeft: { x: 0, y: -0.2 },
+    bottomRight: { x: -0.1, y: -0.2 },
+  },
+};
 
 export const buildingsOrdered = {
   5: [

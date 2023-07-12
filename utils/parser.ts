@@ -11,6 +11,7 @@ import {
   AspectNftProps,
   CityBuilded,
   CityBuildings,
+  CityProps,
   CitySize,
   ClosestCorner,
 } from "@/types/types";
@@ -20,6 +21,7 @@ import {
   MIN_LAND_HEIGHT,
   MIN_LAND_WIDTH,
   buildingsOrdered,
+  TILE_EMPTY,
 } from "./constants";
 import {
   calculateCityCenter,
@@ -35,10 +37,6 @@ import {
   shuffleArray,
 } from "./landUtils";
 
-const TILE_EMPTY = 0;
-const TILE_GRASS = 5;
-const TILE_WATER = 3;
-
 export class LdtkReader {
   json: any;
   level!: Level;
@@ -48,6 +46,7 @@ export class LdtkReader {
   city: Array<Array<number>>;
   cityBuilded: Array<Array<CityBuilded | null>>;
   buildings: Array<Array<CityBuildings | null>>;
+  cityProps: Array<Array<CityProps | null>>;
   idxToRule: { [key: string]: number };
   citySize: number;
   TILE_LAND: number;
@@ -82,6 +81,9 @@ export class LdtkReader {
     this.cityBuilded = new Array(citySize)
       .fill(0)
       .map(() => new Array(citySize).fill(null));
+    this.cityProps = new Array(citySize)
+      .fill(0)
+      .map(() => new Array(citySize).fill(null));
 
     const intGrid = this.ldtk.defs.layers.filter(
       (l: any) => l.__type === "IntGrid"
@@ -96,9 +98,11 @@ export class LdtkReader {
     this.currentDirection = null;
 
     this.entities = this.sortEntities(userNft);
+    console.log("this.entities", this.entities);
     this.userNft = userNft;
   }
 
+  // todo: filter depending on NFTs
   sortEntities(userNft: AspectNftProps[]) {
     let entitiesSorted: { [key: string]: { [key: number]: EntityProps[] } } =
       {};
@@ -157,18 +161,37 @@ export class LdtkReader {
         activeWidth = parseInt(splittedId[1][0]);
         activeHeight = parseInt(splittedId[1][2]);
         heightGroup = parseInt(splittedId[2][1]);
+      } else if (splittedId[0] === "Props") {
+        key = "Props";
+      }
+
+      // Get custom data for entities
+      let customData = null;
+      const tileset = this.ldtk.defs.tilesets.find(
+        (tileset: Tileset) => tileset.uid === entity.tileRect.tilesetUid
+      );
+      if (tileset) {
+        const tileId = this.getTileIdFromPx(
+          entity.tileRect.x,
+          entity.tileRect.y,
+          tileset.__cWid
+        );
+        const data = tileset.customData.find(
+          (data: { tileId: number; data: string }) => data.tileId === tileId
+        )?.data;
+        // todo: placeholder data for now, update later
+        customData = data ? "pointLight:testlight" : null;
       }
 
       const entityProps: EntityProps = {
         ...entity,
-        // activeWidth: entity.tileRect ? entity.tileRect.w / 16 : activeWidth,
-        // activeHeight: entity.tileRect ? entity.tileRect.h / 16 : activeHeight,
         activeWidth,
         activeHeight,
         heightGroup,
         isBuilt: false,
         corner,
         level,
+        customData,
       };
       if (!entitiesSorted[key]) entitiesSorted[key] = {};
       if (!entitiesSorted[key][activeWidth]) {
@@ -236,6 +259,7 @@ export class LdtkReader {
     this.GenerateBlocks();
     this.addBoundariesAroundLand();
     this.ApplyRules();
+    this.placeProps();
 
     return mappack;
   }
@@ -1031,6 +1055,7 @@ export class LdtkReader {
       if (isBuilt) {
         this.entities = copyEntities;
         const shuffledBuildings = shuffleAndHandleCorners(toBuild, rand);
+        // todo: when building (in case we're au-dessus a sidewalk), we check we can place props (no = -1)
         this.build(shuffledBuildings, x, y);
         this.fillRemainingSpace(rectangleSize, x, y);
         break;
@@ -1141,6 +1166,53 @@ export class LdtkReader {
     copyEntities["Generic"][width][entityIndex].isBuilt = true;
     this.entities = copyEntities;
     return entityIndex;
+  }
+
+  placeProps(): void {
+    // todo: ask HP to update props so that data in grounds' CustomData have entity identifier or uid
+    console.log("this.cityBuilded", this.cityBuilded);
+    const corners = this.ldtk.defs.tilesets[0].customData;
+    for (let i = 0; i < this.cityBuilded.length; i++) {
+      for (let j = 0; j < this.cityBuilded[i].length; j++) {
+        const tile = this.cityBuilded[i][j];
+        if (
+          corners.find(
+            (corner: { tileId: number; data: string }) =>
+              corner.tileId === tile?.tileId
+          )
+        ) {
+          const entity = this.entities["Props"][0].find(
+            (elem) => elem.identifier === "Props_StreetLight"
+          );
+          const corner = this.checkWhichCorner(i, j);
+          this.cityProps[i][j] = {
+            entity: entity as Entity,
+            corner,
+          };
+        } else if (tile?.tileId !== -1) {
+          // todo: place a random prop
+        }
+      }
+    }
+
+    console.log("this.cityProps", this.cityProps);
+  }
+
+  checkWhichCorner(y: number, x: number): string {
+    if (this.city[y][x - 1] === 2 && this.city[y - 1][x] === 2) {
+      return "topLeft";
+    } else if (this.city[y][x + 1] === 2 && this.city[y - 1][x] === 2) {
+      return "topRight";
+    } else if (this.city[y][x - 1] === 2 && this.city[y + 1][x] === 2) {
+      return "bottomLeft";
+    } else if (this.city[y][x + 1] === 2 && this.city[y + 1][x] === 2) {
+      return "bottomRight";
+    }
+    return "";
+  }
+
+  getTileIdFromPx(x: number, y: number, cWid: number): number {
+    return (y / 16) * cWid + x / 16;
   }
 
   randomGround(spec: number): number {
