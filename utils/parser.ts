@@ -203,7 +203,7 @@ export class LdtkReader {
 
         // todo: remove when json fixed (customData for StreetLight)
         if (entity.identifier === "Props_StreetLight") {
-          customDatas = [{ tileId: 1, pointlight: "pink1" }];
+          customDatas = [{ tileId: 1, pointlight: "street1" }];
         }
       }
 
