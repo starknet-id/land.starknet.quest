@@ -20,6 +20,62 @@ export const NFTContracts = [
   ), // braavos journey NFT Contract
 ];
 
+export const totalNFT = 22;
+// limite 15 - 25 - 40
+
+export const LandsNFTs = {
+  braavos: {
+    contract_address:
+      "0x00057c4b510d66eb1188a7173f31cccee47b9736d40185da8144377b896d5ff3",
+    levels: {
+      1: 2,
+      2: 3,
+      3: 5,
+    },
+    nft_names: [
+      "Starknet Exchange Journey",
+      "Starknet Mobile Journey",
+      "Starknet Journey Map",
+      "Starknet Onboarding Journey",
+      "Starknet Journey Coin NFT",
+      "Starknet Identity Journey",
+    ],
+  },
+  argentx: {
+    contract_address:
+      "0x01b22f7a9d18754c994ae0ee9adb4628d414232e3ebd748c386ac286f86c3066",
+    levels: {
+      1: 2,
+      2: 4,
+      3: 6,
+    },
+    nft_names: [
+      "Xplorer — Argent",
+      "Xplorer — Starkfighter",
+      "Xplorer — Jediswap",
+      "Xplorer — Mintsquare",
+      "Xplorer — Layerswap",
+      "Xplorer — Briq",
+      "Xplorer — AVNU",
+      "Xplorer — Dappland",
+    ],
+  },
+  sq: {
+    contract_address:
+      "0x076503062d78f4481be03c9145022d6a4a71ec0719aa07756f79a2384dc7ef16",
+    nft_names: [
+      "StarkFighter Bronze Arcade",
+      "StarkFighter Silver Arcade",
+      "StarkFighter Gold Arcade",
+      "AVNU Astronaut",
+      "Starknet ID Tribe Totem",
+      "Starknet ID Tribe Shield",
+      "Zklend Artemis",
+      "JediSwap Light Saber",
+    ],
+  },
+};
+
 export const TILE_SIZE = 16;
 export const MIN_LAND_WIDTH = 7;
 export const MAX_LAND_WIDTH = 16;
@@ -29,10 +85,89 @@ export const ROAD_SIZE = 2;
 export const TILE_EMPTY = 0;
 
 export const pointLightsData: { [key: string]: pointLightProps } = {
-  testlight: {
-    intensity: 0.5,
+  pink1: {
+    intensity: 0.8,
+    color: "pink",
+    z: 0.6,
+    distance: 50,
+    decay: 4,
+  },
+  pink2: {
+    intensity: 0.8,
+    color: "pink",
+    z: 0.6,
+    distance: 50,
+    decay: 4,
+  },
+  green1: {
+    intensity: 1,
+    color: "green",
+    z: 0.6,
+    distance: 50,
+    decay: 4,
+  },
+  green2: {
+    intensity: 0.8,
+    color: "green",
+    z: 0.6,
+    distance: 50,
+    decay: 4,
+  },
+  yellow1: {
+    intensity: 0.8,
+    color: "yellow",
+    z: 0.6,
+    distance: 50,
+    decay: 4,
+  },
+  yellow2: {
+    intensity: 0.8,
+    color: "yellow",
+    z: 0.6,
+    distance: 50,
+    decay: 4,
+  },
+  white1: {
+    intensity: 0.8,
     color: "0xffffff",
-    z: 23.2,
+    z: 0.6,
+    distance: 50,
+    decay: 4,
+  },
+  purple1: {
+    intensity: 0.8,
+    color: "purple",
+    z: 0.6,
+    distance: 50,
+    decay: 4,
+  },
+  orange1: {
+    intensity: 0.8,
+    color: "orange",
+    z: 0.6,
+    distance: 50,
+    decay: 4,
+  },
+  blue1: {
+    intensity: 0.8,
+    color: "blue",
+    z: 0.6,
+    distance: 50,
+    decay: 4,
+  },
+  blue2: {
+    intensity: 0.8,
+    color: "blue",
+    z: 0.6,
+    distance: 50,
+    decay: 4,
+  },
+  red1: {
+    intensity: 0.8,
+    color: "red",
+    z: 0.6,
+    distance: 50,
+    decay: 4,
   },
 };
 

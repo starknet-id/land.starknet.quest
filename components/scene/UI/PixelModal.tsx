@@ -17,10 +17,11 @@ const PixelModal: FunctionComponent<ButtonProps> = ({
   width = 0,
 }) => {
   return (
-    <div className={styles.svgBorder}>
-      <div style={{ width: `${width ? width + "px" : "auto"} ` }}>
-        {children}
-      </div>
+    <div
+      className={styles.svgBorder}
+      style={{ width: `${width ? width + "px" : "auto"} ` }}
+    >
+      <div>{children}</div>
     </div>
   );
 };

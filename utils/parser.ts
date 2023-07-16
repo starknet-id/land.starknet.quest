@@ -5,15 +5,18 @@ import {
   IntGridValue,
   EntityProps,
   Entity,
+  TileRect,
 } from "@/types/ldtk";
 import * as THREE from "three";
 import {
   AspectNftProps,
   CityBuilded,
   CityBuildings,
+  CityLight,
   CityProps,
   CitySize,
   ClosestCorner,
+  SpriteBounds,
 } from "@/types/types";
 import {
   MAX_LAND_HEIGHT,
@@ -22,14 +25,18 @@ import {
   MIN_LAND_WIDTH,
   buildingsOrdered,
   TILE_EMPTY,
+  propsOffset,
+  pointLightsData,
 } from "./constants";
 import {
   calculateCityCenter,
   convertTo2D,
   decompose,
   findClosestCorner,
+  getCustomDataArr,
   getOffsetFromDirection,
   getSubArray,
+  getValFromCustomData,
   needsDirectionChange,
   printSubArray,
   setDirectionBasedOnCorner,
@@ -57,15 +64,16 @@ export class LdtkReader {
     endX: number;
     endY: number;
   }> = [];
-  userNft: AspectNftProps[];
+  userNft: { [key: string]: boolean | number } | undefined;
   entities: { [key: string]: { [key: number]: EntityProps[] } };
-  currentDirection: string | null;
+  currentDirection: string | null = null;
+  lights: CityLight[] = [];
 
   constructor(
     filejson: any,
     address: string,
     citySize: number,
-    userNft: AspectNftProps[]
+    userNft?: { [key: string]: boolean | number }
   ) {
     this.json = filejson;
     this.tilesets = this.json.defs.tilesets;
@@ -92,18 +100,15 @@ export class LdtkReader {
       return { [val.identifier]: val.value };
     });
     this.idxToRule = Object.assign({}, ...idxToRule);
-    console.log("idxToRule", this.idxToRule);
     this.TILE_LAND = this.idxToRule["Sidewalk"];
     this.TILE_ROAD = this.idxToRule["Roads"];
-    this.currentDirection = null;
 
     this.entities = this.sortEntities(userNft);
-    console.log("this.entities", this.entities);
     this.userNft = userNft;
   }
 
-  // todo: filter depending on NFTs
-  sortEntities(userNft: AspectNftProps[]) {
+  // TODO: filter depending on NFTs
+  sortEntities(userNft?: { [key: string]: boolean | number }) {
     let entitiesSorted: { [key: string]: { [key: number]: EntityProps[] } } =
       {};
     this.ldtk.defs.entities.forEach((entity: Entity) => {
@@ -167,20 +172,39 @@ export class LdtkReader {
 
       // Get custom data for entities
       let customData = null;
+      let customDatas: { [key: string]: any }[] = [];
+      let tileIdsArr: number[][] | null = null;
       const tileset = this.ldtk.defs.tilesets.find(
         (tileset: Tileset) => tileset.uid === entity.tileRect.tilesetUid
       );
       if (tileset) {
-        const tileId = this.getTileIdFromPx(
-          entity.tileRect.x,
-          entity.tileRect.y,
+        const bounds = this.getTileIdsFromSprite(
+          entity.tileRect,
           tileset.__cWid
         );
-        const data = tileset.customData.find(
-          (data: { tileId: number; data: string }) => data.tileId === tileId
-        )?.data;
-        // todo: placeholder data for now, update later
-        customData = data ? "pointLight:testlight" : null;
+        tileIdsArr = this.getTileIdsArray(
+          entity.tileRect,
+          tileset.__cWid,
+          bounds
+        );
+        console.log("entity rect", entity.identifier, tileIdsArr);
+        const flatArr = tileIdsArr.flat();
+        const data = tileset.customData.filter(
+          (data: { tileId: number; data: string }) =>
+            flatArr.includes(data.tileId)
+        );
+        data.map((elem) => {
+          customDatas[customDatas.length] = {
+            tileId: elem.tileId,
+            ...getCustomDataArr(elem.data),
+          };
+        });
+        console.log("customDatas", customDatas);
+
+        // todo: remove when json fixed (customData for StreetLight)
+        if (entity.identifier === "Props_StreetLight") {
+          customDatas = [{ tileId: 1, pointlight: "pink1" }];
+        }
       }
 
       const entityProps: EntityProps = {
@@ -191,7 +215,9 @@ export class LdtkReader {
         isBuilt: false,
         corner,
         level,
-        customData,
+        tileIdsArr,
+        //todo rename to customDatas after refactoring
+        customDatas,
       };
       if (!entitiesSorted[key]) entitiesSorted[key] = {};
       if (!entitiesSorted[key][activeWidth]) {
@@ -265,7 +291,7 @@ export class LdtkReader {
   }
 
   GenerateBlocks(): void {
-    let blockMax = 2;
+    let blockMax = 3;
     let blockNb = 0;
 
     while (blockNb <= blockMax) {
@@ -1056,7 +1082,7 @@ export class LdtkReader {
         this.entities = copyEntities;
         const shuffledBuildings = shuffleAndHandleCorners(toBuild, rand);
         // todo: when building (in case we're au-dessus a sidewalk), we check we can place props (no = -1)
-        this.build(shuffledBuildings, x, y);
+        this.build(shuffledBuildings, x, y, true);
         this.fillRemainingSpace(rectangleSize, x, y);
         break;
       }
@@ -1069,7 +1095,12 @@ export class LdtkReader {
     // printSubArray(this.buildings, minX, maxX, minY, maxY);
   }
 
-  build(entities: EntityProps[], x: number, y: number): void {
+  build(
+    entities: EntityProps[],
+    x: number,
+    y: number,
+    isFirstLine: boolean
+  ): void {
     entities.forEach((entity: EntityProps) => {
       const xOffset = entity.corner === "CornerLeft" ? x - 1 : x;
       for (
@@ -1091,10 +1122,38 @@ export class LdtkReader {
               isHidden: true,
             };
           }
+          // // Add pointLights of buildings built
+          // const light = entity.customData?.pointlight;
+          // // console.log("light", light);
+          // const lightProps = light ? pointLightsData[light] : null;
+          // // console.log("lightProps", lightProps);
+          // if (entity?.customData) {
+          //   const offset = entity.customData?.offset;
+          //   this.lights.push({
+          //     x: xOffset + w,
+          //     y: y - h,
+          //     offset,
+          //     posX: y - h + entity.tileRect.w / 32 + offset.x,
+          //     posY: xOffset + w - entity.tileRect.h / 32 + offset.y,
+          //     type: light,
+          //     props: lightProps,
+          //   });
+          // }
         }
       }
       x = x + entity.activeWidth;
+      if (entity.customDatas) {
+        console.log("BUILDING LIGHT", entity.identifier, "x", xOffset, "y", y);
+        this.addLight(
+          entity.tileIdsArr,
+          entity.customDatas,
+          { x: 0, y: 0 },
+          xOffset,
+          y
+        );
+      }
     });
+    console.log("this.lights", this.lights);
   }
 
   fillRemainingSpace(rectangleSize: THREE.Vector2, x: number, y: number): void {
@@ -1116,7 +1175,7 @@ export class LdtkReader {
             console.log("counter", counter);
             const entity = this.entities["Generic"][counter][entityIndex];
             const activeHeight = entity.activeHeight;
-            this.build([entity], j, i + activeHeight);
+            this.build([entity], j, i + activeHeight, false);
           }
         }
       }
@@ -1184,18 +1243,44 @@ export class LdtkReader {
           const entity = this.entities["Props"][0].find(
             (elem) => elem.identifier === "Props_StreetLight"
           );
+          if (!entity) continue;
           const corner = this.checkWhichCorner(i, j);
           this.cityProps[i][j] = {
             entity: entity as Entity,
             corner,
           };
+          if (entity.customDatas) {
+            this.addLight(
+              entity.tileIdsArr,
+              entity.customDatas,
+              propsOffset[entity.identifier][corner],
+              j,
+              i
+            );
+          }
+          // const lights = entity.customDatas?.filter((elem) => elem.pointlight);
+          // console.log("LIGHTS", lights);
+          // lights?.map((light) => {
+          //   const lightType = light.pointlight;
+          //   const lightProps = light ? pointLightsData[lightType] : null;
+          //   const offset = propsOffset[entity.identifier][corner];
+          //   this.lights.push({
+          //     x: j,
+          //     y: i,
+          //     offset,
+          //     posX: j + entity.tileRect.w / 32 + offset.x -0.35,
+          //     posY: i - entity.tileRect.h / 32 + offset.y -0.35,
+          //     type: lightType,
+          //     props: lightProps,
+          //   });
+          // });
         } else if (tile?.tileId !== -1) {
           // todo: place a random prop
         }
       }
     }
-
-    console.log("this.cityProps", this.cityProps);
+    console.log("this.buildings", this.buildings);
+    console.log("this.light", this.lights);
   }
 
   checkWhichCorner(y: number, x: number): string {
@@ -1211,8 +1296,90 @@ export class LdtkReader {
     return "";
   }
 
-  getTileIdFromPx(x: number, y: number, cWid: number): number {
-    return (y / 16) * cWid + x / 16;
+  getTileIdsFromSprite(tileRect: TileRect, cWid: number): SpriteBounds {
+    const { x, y, h, w } = tileRect;
+    let spriteTileIdTopLeft = (y / 16) * cWid + x / 16; // This is your `spriteTileIdStart`
+    let spriteTileIdTopRight = spriteTileIdTopLeft + w / 16 - 1;
+    let spriteTileIdBottomLeft = spriteTileIdTopLeft + (h / 16 - 1) * cWid;
+    let spriteTileIdBottomRight = spriteTileIdBottomLeft + w / 16 - 1; // This is your `spriteTileIdEnd`
+    return {
+      spriteTileIdTopLeft,
+      spriteTileIdTopRight,
+      spriteTileIdBottomLeft,
+      spriteTileIdBottomRight,
+    };
+  }
+
+  getTileIdsArray(
+    tileRect: TileRect,
+    cWid: number,
+    bounds: SpriteBounds
+  ): number[][] {
+    const { spriteTileIdTopLeft } = bounds;
+    const tileIds: number[][] = [];
+    let start = bounds.spriteTileIdTopLeft;
+    for (let by = 0; by < tileRect.h / 16; by++) {
+      for (let bx = 0; bx < tileRect.w / 16; bx++) {
+        if (!tileIds[by]) tileIds[by] = [];
+        tileIds[by][bx] = start;
+        start++;
+      }
+      if (start > spriteTileIdTopLeft + tileRect.w / 16 - 1) {
+        start = spriteTileIdTopLeft + cWid * (by + 1);
+      }
+    }
+    return tileIds;
+  }
+
+  addLight(
+    tileIdsArr: number[][] | null,
+    customDatas: { [key: string]: any }[],
+    offset: { x: number; y: number },
+    x: number,
+    y: number
+  ) {
+    console.log("tileIdsArr", tileIdsArr);
+    console.log("customDatas", customDatas);
+    const lights = customDatas.filter((elem) => elem.pointlight);
+    console.log("offset before", offset, lights);
+    lights?.map((light) => {
+      let tempOffset = offset;
+      console.log("placing light", light);
+      console.log("offset before", tempOffset);
+      const lightType = light.pointlight;
+      const lightProps = light ? pointLightsData[lightType] : null;
+      if (tempOffset.x === 0 && tempOffset.y === 0 && tileIdsArr) {
+        tempOffset = this.findTileIn2DArray(light.tileId, tileIdsArr);
+        console.log("NEW offset", tempOffset);
+        if (light.offset) {
+          if (light.offset.x === 0) tempOffset.x -= 0.5;
+          if (light.offset.x === 1) tempOffset.x += 0.5;
+          if (light.offset.y === 0) tempOffset.y += 0.5;
+          if (light.offset.y === 1) tempOffset.y -= 0.5;
+        }
+      }
+      // todo: add z in lights array
+      this.lights.push({
+        x,
+        y,
+        offset: tempOffset,
+        posX: x + tempOffset.x + 0.5,
+        posY: y + tempOffset.y - 0.5,
+        type: lightType,
+        props: lightProps,
+      });
+    });
+  }
+
+  findTileIn2DArray(tileId: number, arr: number[][]): { x: number; y: number } {
+    for (let y = 0; y < arr.length; y++) {
+      for (let x = 0; x < arr[y].length; x++) {
+        if (arr[y][x] === tileId) {
+          return { x, y: -(arr.length - 1 - y) };
+        }
+      }
+    }
+    return { x: 0, y: 0 };
   }
 
   randomGround(spec: number): number {

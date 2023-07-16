@@ -1,7 +1,7 @@
 import { StarknetIdJsProvider } from "@/context/StarknetIdJsProvider";
 import "@/styles/globals.css";
 import { createTheme } from "@mui/material";
-import { InjectedConnector, StarknetProvider } from "@starknet-react/core";
+import { InjectedConnector, StarknetConfig } from "@starknet-react/core";
 import type { AppProps } from "next/app";
 
 export default function App({ Component, pageProps }: AppProps) {
@@ -27,10 +27,10 @@ export default function App({ Component, pageProps }: AppProps) {
   });
 
   return (
-    <StarknetProvider connectors={connectors} autoConnect>
+    <StarknetConfig connectors={connectors} autoConnect>
       <StarknetIdJsProvider>
         <Component {...pageProps} />
       </StarknetIdJsProvider>
-    </StarknetProvider>
+    </StarknetConfig>
   );
 }

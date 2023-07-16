@@ -2,10 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  @font-face {
+    font-family: "Sora";
+    src: url(../public/fonts/sora/Sora-Regular.ttf);
+  }
+  @font-face {
+    font-family: "Sora-Bold";
+    src: url(../public/fonts/sora/Sora-Bold.ttf);
+  }
+}
+
 :root {
-  /* --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255; */
   --primary: #6affaf;
   --primary2: #5ce3fe;
   --secondary: #f4faff;
@@ -14,22 +22,13 @@
   --background: #101012;
   --background600: #29282b;
   --nimiq-ease: cubic-bezier(0.25, 0, 0, 1);
+  --background-land: #1a1528;
 }
 
-/* @media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
-} */
-
-body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+html, body {
+  padding: 0;
+  margin: 0;
+  font-family: "Sora";
+  background-color: var(--background);
+  color: var(--background-land);
 }

@@ -1,5 +1,6 @@
 import { CityProps, pointLightProps } from "@/types/types";
 import { pointLightsData, propsOffset } from "@/utils/constants";
+import { getValFromCustomData } from "@/utils/landUtils";
 import { memo, useMemo, useState } from "react";
 
 type IElem = {
@@ -13,7 +14,7 @@ type IElem = {
 const PropsItem = memo<IElem>(
   ({ tileset, tileData, pos, textureLoader, entity }): any => {
     const [localTexture, setLocalTexture] = useState<any>(null);
-    const [pointLight, setPointLight] = useState<pointLightProps>();
+    // const [pointLight, setPointLight] = useState<pointLightProps | null>();
     const [offsetX, setOffsetX] = useState<number>(0);
     const [offsetY, setOffsetY] = useState<number>(0);
 
@@ -39,15 +40,11 @@ const PropsItem = memo<IElem>(
         setLocalTexture(localT);
 
         // set customData if we have some > especially pointLight
-        if (entity.customData) {
-          let data = entity.customData.split("|");
-          data.map((d: string) => {
-            const subData = d.split(":");
-            if (subData[0] === "pointLight") {
-              setPointLight(pointLightsData[subData[1]]);
-            }
-          });
-        }
+        // if (entity.customData) {
+        //   const light = getValFromCustomData("pointLight", entity.customData);
+        //   if (light) setPointLight(pointLightsData[light]);
+        //   else setPointLight(null);
+        // }
 
         // add offset depending on where props is placed on sidewalk
         if (tileData.corner) {
@@ -65,7 +62,8 @@ const PropsItem = memo<IElem>(
         <mesh
           position={[
             pos.posX + tileData.entity.tileRect.w / 32 + offsetX,
-            0.22 + pos.posY * 0.02,
+            // 0.22 + pos.posY * 0.02,
+            0.22,
             pos.posY - tileData.entity.tileRect.h / 32 + offsetY,
           ]}
           name={`${tileData.entity.tileRect.tilesetUid}_props`.toString()}
@@ -95,17 +93,17 @@ const PropsItem = memo<IElem>(
             depthTest={true}
           />
         </mesh>
-        {pointLight ? (
+        {/* {pointLight ? (
           <pointLight
             position={[
               pos.posX + tileData.entity.tileRect.w / 32 + offsetX,
-              0.22 + 3 / pointLight.z + pos.posY * 0.02,
-              pos.posY - tileData.entity.tileRect.h / 32 + offsetY,
+              0.22 + pos.posY * 0.02 + pointLight?.z,
+              pos.posY - tileData.entity.tileRect.h / 32 + offsetY - 0.5,
             ]}
-            intensity={1}
+            intensity={pointLight?.intensity}
             color={pointLight?.color}
           />
-        ) : null}
+        ) : null} */}
       </>
     );
   }

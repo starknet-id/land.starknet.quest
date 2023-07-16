@@ -255,3 +255,34 @@ export const setDirectionBasedOnCorner = (
   }
   return "";
 };
+
+export const getValFromCustomData = (
+  val: string,
+  customData: string
+): string | null => {
+  let data = customData.split("|");
+  for (let i = 0; i < data.length; i++) {
+    const subData = data[i].split(":");
+    if (subData[0] === val) {
+      return subData[1];
+    }
+  }
+  return null;
+};
+
+export const getCustomDataArr = (
+  customData: string
+): { [key: string]: any } => {
+  let res: { [key: string]: any } = {};
+  let data = customData.split("|");
+  data.map((d) => {
+    const subData = d.split(":");
+    if (subData[0] === "offset") {
+      const offset = subData[1].split(",");
+      res[subData[0]] = { x: parseInt(offset[0]), y: parseInt(offset[1]) };
+    } else {
+      res[subData[0]] = subData[1];
+    }
+  });
+  return res;
+};

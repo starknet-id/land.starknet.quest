@@ -86,4 +86,36 @@ export interface pointLightProps {
   intensity: number;
   color: string;
   z: number;
+  distance?: number;
+  decay?: number;
+  power?: number;
+}
+
+export interface CityLight {
+  x: number;
+  y: number;
+  offset: { x: number; y: number };
+  type: string | null;
+  props: pointLightProps | null;
+  posX: number;
+  posY: number;
+}
+
+export interface SpriteBounds {
+  spriteTileIdTopLeft: number;
+  spriteTileIdTopRight: number;
+  spriteTileIdBottomLeft: number;
+  spriteTileIdBottomRight: number;
+}
+
+export interface userNFTsProps {
+  totalNFTs: number;
+  braavosCounter: number;
+  argentxCounter: number;
+  starkFighterLevel: number;
+  hasZkLend: boolean;
+  hasAVNU: boolean;
+  hasJediSwap: boolean;
+  hasSIDShield: boolean;
+  hasSIDTotem: boolean;
 }

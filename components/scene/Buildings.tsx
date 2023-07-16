@@ -32,6 +32,18 @@ export default function Buildings({
     return textures;
   }, []);
 
+  const neonTexture = useMemo(() => {
+    let textObj;
+    textObj = new TextureLoader().load(
+      "/textures/SID_BuildingSheetr_Neons.png"
+    );
+    textObj.repeat = new Vector2(1 / 80, 1 / 80);
+    textObj.magFilter = NearestFilter;
+    textObj.wrapS = RepeatWrapping;
+    textObj.wrapT = RepeatWrapping;
+    return textObj;
+  }, []);
+
   return (
     <>
       {textureLoader &&
@@ -53,6 +65,7 @@ export default function Buildings({
                   )[0]
                 }
                 textureLoader={textureLoader[tileData.tile.tilesetUid]}
+                neonTexture={neonTexture}
                 tileData={tileData.tile}
                 pos={{ posX: iX, posY: iY }}
               />

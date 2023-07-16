@@ -5,15 +5,17 @@ import { Camera } from "./Camera";
 import { LdtkReader } from "@/utils/parser";
 import Ground from "./Ground";
 import { iLDtk } from "@/types/ldtk";
-import { AspectNftProps } from "@/types/types";
+import { AspectNftProps, CityLight } from "@/types/types";
 import Buildings from "./Buildings";
 import { Grid } from "@react-three/drei";
 import { useGesture } from "react-use-gesture";
 import CityProps from "./CityProps";
+import { SelectiveBloom, EffectComposer } from "@react-three/postprocessing";
+import { TerrainBackground } from "./TerrainBackground";
 
 type SceneProps = {
   address: string;
-  userNft: AspectNftProps[];
+  userNft?: { [key: string]: boolean | number };
 };
 
 export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
@@ -30,17 +32,17 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
     KeyD: false,
   });
   const [mouseWheelProp, setMouseWheelProp] = useState(0);
-  const [mouseLeftPressed, setMouseLeftPressed] = useState(0);
+  // const [mouseLeftPressed, setMouseLeftPressed] = useState(0);
   const [mouseRightPressed, setMouseRightPressed] = useState(0);
-  const [mouseMiddlePressed, setMouseMiddlePressed] = useState(0);
-  const [customMouse, setCustomMouse] = useState(new Vector2(0, 0));
+  // const [mouseMiddlePressed, setMouseMiddlePressed] = useState(0);
+  // const [customMouse, setCustomMouse] = useState(new Vector2(0, 0));
+  const [isFirstTouch, setIsFirstTouch] = useState(false);
 
   const [data, setData] = useState<iLDtk>();
-  const [landTilesets, setLandTilesets] = useState<any>(null);
-  const [entities, setEntities] = useState<any>(null);
   const [cityData, setCityData] = useState<any>(null);
   const [propsData, setPropsData] = useState<any>(null);
   const [buildingData, setBuildingData] = useState<any>(null);
+  const [lightData, setLightData] = useState<any>(null);
   const [citySize, setCitySize] = useState(60);
   const [nftArray, setNftArray] = useState<any>(null);
 
@@ -56,6 +58,7 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
       setCityData(mapReader.cityBuilded);
       setPropsData(mapReader.cityProps);
       setBuildingData(mapReader.buildings);
+      setLightData(mapReader.lights);
     }
   }, [data]);
 
@@ -140,6 +143,7 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
         setIndex(() => indexRef.current + 1);
       }
     };
+
     document.addEventListener("keydown", handleKeyDown);
     document.addEventListener("keyup", handleKeyUp);
     const passiveObject: any = { passive: true };
@@ -156,44 +160,39 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
     };
   }, []);
 
-  const bind = useGesture({
-    onDrag: ({ down, movement: [mx, my], tap, swipe: [sx], event }) => {
-      if (event.clientX === 0 && event.clientY === 0) {
-        setCustomMouse(
-          new Vector2(
-            (event.clientX / window.innerWidth) * 2 - 1,
-            -(event.clientY / window.innerHeight) * 2 + 1
-          )
-        );
-      } else {
-        setCustomMouse(
-          new Vector2(
-            (mx / window.innerWidth) * 2 - 1,
-            -(my / window.innerHeight) * 2 + 1
-          )
-        );
-      }
-
-      // Left mouse button equivalents
-      if (tap) {
-        setMouseLeftPressed(down ? 1 : 0);
-      }
-
-      // Middle mouse button equivalents
-      // Triggered by a horizontal swipe
-      if (sx !== 0) {
-        setMouseMiddlePressed(down ? 1 : 0);
-      }
-
-      // Right mouse button equivalents
-      // Triggered by a long press (no drag)
-      if (!down && !tap && sx === 0) {
-        setMouseRightPressed(0);
-      } else {
-        setMouseRightPressed(1);
-      }
+  const bind = useGesture(
+    {
+      onDrag: ({
+        first,
+        down,
+        event,
+        offset: [ox, oy],
+        xy: [x, y],
+        pinching,
+        cancel,
+      }) => {
+        if (first) setIsFirstTouch(true);
+        else setIsFirstTouch(false);
+        if (pinching) return cancel();
+        if (down) {
+          setMouseRightPressed(1);
+        } else {
+          setMouseRightPressed(0);
+        }
+      },
+      //   onPinch: ({ delta, first, memo }) => {
+      //     if (first) {
+      //       if (delta[0] > 0 && indexRef.current > 4) {
+      //         setIndex(() => indexRef.current - 1);
+      //       } else if (delta[0] < 0 && indexRef.current < 20) {
+      //         setIndex(() => indexRef.current + 1);
+      //       }
+      //     }
+      //   },
     },
-  });
+    { eventOptions: { passive: true } }
+    // , domTarget: refCanvas
+  );
 
   return (
     <>
@@ -203,38 +202,40 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
         linear
         ref={refCanvas}
         {...bind()}
-        // onCreated={() => {
-        // }}
-        onMouseDown={(event) => {
-          if (event.button == 1) {
-            setMouseMiddlePressed(1);
-          }
-        }}
-        onMouseUp={(event) => {
-          event.stopPropagation();
-          if (event.button == 1) {
-            setMouseMiddlePressed(0);
-          }
-        }}
         onContextMenu={(event) => {
           event.preventDefault();
         }}
       >
+        <color attach="background" args={["#1a1528"]} />
+        {/* <EffectComposer> */}
+        {/* <SelectiveBloom
+          lights={[lightRef1, lightRef2]} // ⚠️ REQUIRED! all relevant lights
+          selection={[meshRef1, meshRef2]} // selection of objects that will have bloom effect
+          selectionLayer={10} // selection layer
+          intensity={1.0} // The bloom intensity.
+          // blurPass={undefined} // A blur pass.
+          width={windowWidth} // render width
+          height={windowHeight} // render height
+          // kernelSize={KernelSize.LARGE} // blur kernel size
+          luminanceThreshold={0.9} // luminance threshold. Raise this value to mask out darker elements in the scene.
+          luminanceSmoothing={0.025} // smoothness of the luminance threshold. Range is [0, 1]
+        /> */}
+        {/* </EffectComposer> */}
         {/* <ambientLight color={0xffffff} intensity={0.9} /> */}
         <directionalLight
-          color={0xffffff}
-          intensity={0.5}
-          position={[12, 12, 8]}
+          color="black"
+          intensity={1}
+          // position={[12, 12, 8]}
         />
-        <color attach="background" args={[0x1a1528]} />
         <Camera
           aspect={windowWidth / windowHeight}
           mouseRightPressed={mouseRightPressed}
           mouseWheelProp={mouseWheelProp}
           index={index}
           citySize={citySize}
+          isFirstTouch={isFirstTouch}
         />
-        <Grid
+        {/* <Grid
           position={[citySize / 2, 0.22, citySize / 2]}
           args={[citySize, citySize]}
           cellSize={16}
@@ -247,7 +248,7 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
           // fadeStrength: { value: 1, min: 0, max: 1, step: 0.1 },
           // followCamera: false,
           infiniteGrid={true}
-        />
+        /> */}
 
         {data && cityData ? (
           <Ground tileset={data?.defs.tilesets[0]} cityData={cityData} />
@@ -263,15 +264,20 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
             buildingData={buildingData}
           />
         ) : null}
-        {/* <AnimatedSprite
-          src="/textures/AsepriteParseTester.aseprite"
-          scale={[2, 2, 2]}
-          position={[0, 2, 0]}
-        /> */}
 
-        {/* <TerrainBackground />
-        <Terrain />
-        <TerrainBorder /> */}
+        {data && lightData
+          ? lightData.map((light: CityLight, index: number) => {
+              const z = light.props ? light.props.z : 0.6;
+              return (
+                <pointLight
+                  key={`light_${light.posX}_${light.posY}_${index}`}
+                  position={[light.posX, z, light.posY]}
+                  {...light.props}
+                />
+              );
+            })
+          : null}
+        <TerrainBackground />
       </Canvas>
     </>
   );
