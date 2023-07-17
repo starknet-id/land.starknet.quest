@@ -26,7 +26,7 @@ const PropItemMesh = memo<IElem>(
         localT.repeat.set(tileData.textureRepeat.x, tileData.textureRepeat.y);
 
         const offset = propsOffset[tileData.entity.identifier][propData.corner];
-        setOffset(offset);
+        if (offset) setOffset(offset);
 
         return localT;
       }

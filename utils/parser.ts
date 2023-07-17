@@ -1258,15 +1258,15 @@ export class LdtkReader {
     const entityIndex = copyEntities["Generic"][width].findIndex(
       (elem: EntityProps) => !elem.isBuilt && elem.tileRect.h / 16 <= maxHeight
     );
+    if (entityIndex === -1) return -1;
+    console.log(' copyEntities["Generic"]', copyEntities["Generic"]);
+    console.log("width", width, "entityIndex", entityIndex);
     copyEntities["Generic"][width][entityIndex].isBuilt = true;
     this.entities = copyEntities;
     return entityIndex;
   }
 
   placeProps(): void {
-    console.log("cityBuilded", this.cityBuilded);
-    console.log("this.city", this.city);
-    console.log("this.blockedPaths", this.blockedPaths);
     const tileset = this.ldtk.defs.tilesets[0];
     const corners = tileset.customData;
     let propTypesArray = Object.values(PropsTypes).filter(
@@ -1280,16 +1280,9 @@ export class LdtkReader {
         if (this.blockedPaths.find((elem) => elem.x === j && elem.y === i))
           continue; // if blocked sidewalk continue
 
-        // handle corners
         const tile = this.cityBuilded[i][j];
-
-        // if ()
-        // checkWhichCorner(y: number, x: number): string | null  -- add null in case not a corner
-        // todo:  check that it is a sidewalk tile (so it has 0 on one side and 1 on the other) and check which side it is
-        // if it is not blocked
         const isCorner = this.checkWhichCorner(i, j);
         const isSide = this.checkWhichSidewalkSide(i, j);
-        console.log("not blocked", j, i, isCorner);
         if (
           corners.find(
             (corner: { tileId: number; data: string }) =>
@@ -1297,7 +1290,6 @@ export class LdtkReader {
           ) &&
           isCorner
         ) {
-          console.log("it is a corner");
           const entity = this.entities["Props"][0].find(
             (elem) => elem.identifier === "Props_StreetLight"
           );
@@ -1333,10 +1325,9 @@ export class LdtkReader {
             else propIndex++;
           } else {
             if (rand < 0.3) {
-              console.log("rand 2", rand);
+              if (propIndex === 4) propIndex = 1;
               propType = propTypesArray[propIndex];
-              if (propIndex === 3) propIndex = 1;
-              else propIndex++;
+              propIndex++;
             }
           }
 

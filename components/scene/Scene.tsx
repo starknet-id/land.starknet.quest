@@ -134,7 +134,6 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
         onContextMenu={(event) => {
           event.preventDefault();
         }}
-        // frameloop="demand"
       >
         {/* <Perf position="top-left" style={{ marginLeft: "20px" }} /> */}
         <color attach="background" args={["#1a1528"]} />
@@ -197,7 +196,7 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
           />
         ) : null}
 
-        {data && lightData
+        {/* {data && lightData
           ? lightData.map((light: CityLight, index: number) => {
               const z = light.props ? light.props.z : 0.6;
               return (
@@ -209,7 +208,7 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
                 />
               );
             })
-          : null}
+          : null} */}
         <TerrainBackground />
       </Canvas>
     </>

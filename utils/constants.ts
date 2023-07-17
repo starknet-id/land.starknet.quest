@@ -129,7 +129,7 @@ export const pointLightsData: { [key: string]: pointLightProps } = {
   },
   white1: {
     intensity: 1.8,
-    color: "0xffffff",
+    color: "#ffffff",
     z: 1.2,
     distance: 30,
     decay: 7,
