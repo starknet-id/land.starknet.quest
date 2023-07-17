@@ -1,4 +1,4 @@
-import { number } from "starknet";
+import { num, number } from "starknet";
 import { Entity } from "./ldtk";
 
 type Identity = {
@@ -51,8 +51,9 @@ export interface CityBuildings {
 }
 
 export interface CityProps {
-  entity: EntityProps;
-  corner?: string;
+  entityType: PropsTypes;
+  corner: string;
+  z: number;
 }
 
 export interface ClosestCorner {
@@ -118,4 +119,20 @@ export interface userNFTsProps {
   hasJediSwap: boolean;
   hasSIDShield: boolean;
   hasSIDTotem: boolean;
+}
+
+export interface CityObjectsProps {
+  posX: number;
+  posY: number;
+  offset: { x: number; y: number; z: number };
+  corner?: string;
+  side?: string;
+}
+
+export interface TileData {
+  entity: any;
+  plane: { w: number; h: number };
+  textureOffset: { x: number; y: number };
+  textureRepeat: { x: number; y: number };
+  z: number;
 }

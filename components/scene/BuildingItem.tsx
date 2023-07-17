@@ -1,6 +1,6 @@
 import { TileRect } from "@/types/ldtk";
-import { EffectComposer } from "@react-three/postprocessing";
 import { memo, useMemo, useState } from "react";
+import { PlaneGeometry } from "three";
 
 type IElem = {
   tileset: any;
@@ -13,10 +13,8 @@ type IElem = {
 
 const BuildingItem = memo<IElem>(
   ({ tileset, tileData, pos, textureLoader, neonTexture, entity }): any => {
-    const [localTexture, setLocalTexture] = useState<any>(null);
     const [offset, setOffset] = useState<any>(null);
     const [repeat, setRepeat] = useState<any>(null);
-    const [localNeonTexture, setLocalNeonTexture] = useState<any>(null);
 
     const elemTexture = useMemo(() => {
       if (tileset && textureLoader) {
@@ -41,7 +39,6 @@ const BuildingItem = memo<IElem>(
           x: 1 / (spritesPerRow / (tileData.w / tileset.tileGridSize)),
           y: 1 / (spritesPerColumn / (tileData.h / tileset.tileGridSize)),
         });
-        setLocalTexture(localT);
         return localT;
       }
     }, [textureLoader, tileset, tileData]);
@@ -53,38 +50,36 @@ const BuildingItem = memo<IElem>(
 
         localT.offset.set(offset.x, offset.y);
         localT.repeat.set(repeat.x, repeat.y);
-        setLocalNeonTexture(localT);
         return localT;
       }
     }, [neonTexture, tileset, tileData, repeat, offset]);
+
+    const plane = useMemo(() => {
+      return new PlaneGeometry(tileData.w / 16, tileData.h / 16, 1, 1);
+    }, [tileData]);
 
     return (
       <>
         <mesh
           position={[
             pos.posX + tileData.w / 32,
-            // 0.22 + pos.posY * 0.02,
             0.22,
             pos.posY - tileData.h / 32,
           ]}
           name={`${tileData.tilesetUid}_building`.toString()}
           rotation={[-Math.PI * 0.5, 0, 0]}
+          geometry={plane}
         >
-          <planeGeometry
-            name={`${tileData.tilesetUid}_building`.toString() + "_geom"}
-            attach="geometry"
-            args={[tileData.w / 16, tileData.h / 16, 1, 1]}
-          />
-          <meshStandardMaterial
+          <meshPhongMaterial
             attach="material"
-            map={localTexture}
+            map={elemTexture}
             name={`${tileData.tilesetUid}_building`.toString() + "_mat"}
             transparent={true}
             depthWrite={false}
             depthTest={true}
           />
         </mesh>
-        {/* <mesh
+        <mesh
           position={[
             pos.posX + tileData.w / 32,
             0.22,
@@ -92,24 +87,17 @@ const BuildingItem = memo<IElem>(
           ]}
           name={`${tileData.tilesetUid}_building_neon`.toString()}
           rotation={[-Math.PI * 0.5, 0, 0]}
+          geometry={plane}
         >
-          <planeGeometry
-            name={`${tileData.tilesetUid}_building_neon`.toString() + "_geom"}
-            attach="geometry"
-            args={[tileData.w / 16, tileData.h / 16, 1, 1]}
-          />
-          <meshStandardMaterial
+          <meshPhongMaterial
             attach="material"
             map={neon}
             name={`${tileData.tilesetUid}_building_neon`.toString() + "_mat"}
             transparent={true}
             depthWrite={false}
             depthTest={true}
-            toneMapped={false}
-            emissiveIntensity={1}
-            envMap={neon}
           />
-        </mesh> */}
+        </mesh>
       </>
     );
   }

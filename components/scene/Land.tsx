@@ -30,7 +30,7 @@ export const Land = ({ address }: LandProps) => {
     url: string,
     accumulatedAssets: AspectNftProps[] = []
   ): Promise<AspectApiResult> => {
-    console.log("retrieving assets");
+    // console.log("retrieving assets");
     return fetch(url, {
       method: "GET",
       headers: {
@@ -56,7 +56,7 @@ export const Land = ({ address }: LandProps) => {
   };
 
   const filterAssets = (assets: AspectNftProps[]) => {
-    console.log("assets", assets);
+    // console.log("assets", assets);
 
     let finalNFTs: { [key: string]: boolean | number } = {
       totalNFTs: 0,

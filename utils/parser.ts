@@ -9,14 +9,14 @@ import {
 } from "@/types/ldtk";
 import * as THREE from "three";
 import {
-  AspectNftProps,
   CityBuilded,
   CityBuildings,
   CityLight,
+  CityObjectsProps,
   CityProps,
   CitySize,
-  ClosestCorner,
   SpriteBounds,
+  TileData,
 } from "@/types/types";
 import {
   MAX_LAND_HEIGHT,
@@ -27,18 +27,18 @@ import {
   TILE_EMPTY,
   propsOffset,
   pointLightsData,
+  PropsTypes,
+  PropsTypesNames,
+  tileTypes,
 } from "./constants";
 import {
   calculateCityCenter,
   convertTo2D,
-  decompose,
   findClosestCorner,
   getCustomDataArr,
   getOffsetFromDirection,
   getSubArray,
-  getValFromCustomData,
   needsDirectionChange,
-  printSubArray,
   setDirectionBasedOnCorner,
   shuffleAndHandleCorners,
   shuffleArray,
@@ -67,7 +67,10 @@ export class LdtkReader {
   userNft: { [key: string]: boolean | number } | undefined;
   entities: { [key: string]: { [key: number]: EntityProps[] } };
   currentDirection: string | null = null;
-  lights: CityLight[] = [];
+  lights: CityLight[] = []; //ok
+  blockedPaths: Array<{ x: number; y: number }> = []; // ok
+  props: Array<Array<CityObjectsProps>> = [];
+  tileData: Record<tileTypes, TileData[]>; // ok
 
   constructor(
     filejson: any,
@@ -105,6 +108,54 @@ export class LdtkReader {
 
     this.entities = this.sortEntities(userNft);
     this.userNft = userNft;
+
+    for (let propType in PropsTypes) {
+      this.props[propType] = [];
+    }
+    this.tileData = {
+      [tileTypes.PROPS]: [],
+    };
+    this.buildTileData();
+  }
+
+  buildTileData() {
+    Object.values(PropsTypes).forEach((propType) => {
+      const propTypeName = PropsTypesNames[propType as PropsTypes];
+      const entity = this.entities["Props"][0].find(
+        (elem) => elem.identifier === propTypeName
+      );
+      const tileset = this.tilesets.find(
+        (t) => t.uid === entity?.tileRect.tilesetUid
+      );
+      if (!entity || !tileset) return;
+      let spritesPerRow = tileset?.pxWid / tileset?.tileGridSize ?? 1;
+      let spritesPerColumn = tileset?.pxHei / tileset?.tileGridSize ?? 1;
+      let xIndex = entity?.tileRect.x / tileset?.tileGridSize ?? 0;
+      let yIndex = entity?.tileRect.y / tileset?.tileGridSize ?? 0;
+      let xOffset = xIndex / spritesPerRow;
+      let yOffset =
+        1 - (yIndex + (entity?.tileRect.h ?? 0) / 16) / spritesPerColumn;
+
+      this.tileData[tileTypes.PROPS].push({
+        entity,
+        plane: {
+          w: (entity?.tileRect.w ?? 0) / 16,
+          h: (entity?.tileRect.h ?? 0) / 16,
+        },
+        textureOffset: { x: xOffset, y: yOffset },
+        textureRepeat: {
+          x:
+            1 /
+            (spritesPerRow /
+              ((entity?.tileRect.w ?? 0) / tileset?.tileGridSize ?? 1)),
+          y:
+            1 /
+            (spritesPerColumn /
+              ((entity?.tileRect.h ?? 0) / tileset?.tileGridSize ?? 1)),
+        },
+        z: 0.23,
+      });
+    });
   }
 
   // TODO: filter depending on NFTs
@@ -187,7 +238,7 @@ export class LdtkReader {
           tileset.__cWid,
           bounds
         );
-        console.log("entity rect", entity.identifier, tileIdsArr);
+        // console.log("entity rect", entity.identifier, tileIdsArr);
         const flatArr = tileIdsArr.flat();
         const data = tileset.customData.filter(
           (data: { tileId: number; data: string }) =>
@@ -199,12 +250,6 @@ export class LdtkReader {
             ...getCustomDataArr(elem.data),
           };
         });
-        console.log("customDatas", customDatas);
-
-        // todo: remove when json fixed (customData for StreetLight)
-        if (entity.identifier === "Props_StreetLight") {
-          customDatas = [{ tileId: 1, pointlight: "street1" }];
-        }
       }
 
       const entityProps: EntityProps = {
@@ -216,7 +261,6 @@ export class LdtkReader {
         corner,
         level,
         tileIdsArr,
-        //todo rename to customDatas after refactoring
         customDatas,
       };
       if (!entitiesSorted[key]) entitiesSorted[key] = {};
@@ -305,12 +349,12 @@ export class LdtkReader {
 
     // generate a new block
     const blockSize = this.GetRandomBlockSize(blockNb);
-    console.log(
-      "----- NEW BLOCK SIZE for rectangle",
-      blockSize,
-      "blockNb",
-      blockNb
-    );
+    // console.log(
+    //   "----- NEW BLOCK SIZE for rectangle",
+    //   blockSize,
+    //   "blockNb",
+    //   blockNb
+    // );
 
     if (blockNb == 0) {
       center = {
@@ -329,7 +373,7 @@ export class LdtkReader {
     } else {
       this.findNextBlockCorners(blockSize);
     }
-    console.log("city", this.city);
+    // console.log("city", this.city);
   }
 
   findValidRoadTiles(
@@ -390,7 +434,7 @@ export class LdtkReader {
     // } else if (direction === "left") {
     //   roadTiles.sort((a, b) => b.y - a.y || a.x - b.x);
     // }
-    console.log("possible roadTiles", roadTiles);
+    // console.log("possible roadTiles", roadTiles);
 
     let selectedRoadTile = false;
     let counter: number = 0; // keep track of first index
@@ -426,7 +470,7 @@ export class LdtkReader {
             corner: "topLeft",
           });
         }
-        console.log("potentialTiles", potentialTiles);
+        // console.log("potentialTiles", potentialTiles);
 
         // Filter out tiles that are outside the grid or not empty
         let validTiles = potentialTiles.filter(
@@ -437,7 +481,7 @@ export class LdtkReader {
             tile.y < this.citySize &&
             this.city[tile.y][tile.x] === 0
         );
-        console.log("validTiles", validTiles);
+        // console.log("validTiles", validTiles);
 
         let validTile = null;
         if (validTiles.length > 0) {
@@ -449,14 +493,14 @@ export class LdtkReader {
             );
             if (isValid) {
               selectedRoadTile = true;
-              console.log("tile selected", tile);
+              // console.log("tile selected", tile);
               validTile = tile;
               break;
             }
           }
         }
 
-        console.log("selectedRoadTile", selectedRoadTile);
+        // console.log("selectedRoadTile", selectedRoadTile);
 
         if (selectedRoadTile) {
           return validTile;
@@ -552,7 +596,7 @@ export class LdtkReader {
       citySize.minY,
       citySize.maxY
     );
-    console.log("this.currentDirection", this.currentDirection);
+    // console.log("this.currentDirection", this.currentDirection);
 
     const subArr = getSubArray(
       this.city,
@@ -561,26 +605,26 @@ export class LdtkReader {
       citySize.minY,
       citySize.maxY
     );
-    console.log("subArr", subArr);
+    // console.log("subArr", subArr);
     const corners = this.findEmptyCorners(subArr);
-    console.log("corners", corners);
+    // console.log("corners", corners);
     let closestCorner = findClosestCorner(center, corners);
-    console.log("closestCorner", closestCorner);
+    // console.log("closestCorner", closestCorner);
 
     if (
       !closestCorner ||
       needsDirectionChange(closestCorner, subArr, blockSize)
     ) {
-      console.log("need change dir", this.currentDirection);
-      console.log("citySize", citySize);
+      // console.log("need change dir", this.currentDirection);
+      // console.log("citySize", citySize);
       this.changeDirection(citySize);
-      console.log("new direction", this.currentDirection);
+      // console.log("new direction", this.currentDirection);
       let roadTile = this.FindRandomRoadTile(
         blockSize,
         this.currentDirection,
         citySize
       );
-      console.log("roadTile 1", roadTile);
+      // console.log("roadTile 1", roadTile);
       if (roadTile) {
         const coordinates = this.PlaceRectangle(
           { x: roadTile.x, y: roadTile.y, direction: roadTile.corner },
@@ -710,7 +754,7 @@ export class LdtkReader {
       }
     }
     this.city = copyCityGrid;
-    console.log("this.city after roads", this.city);
+    // console.log("this.city after roads", this.city);
   }
 
   addBoundariesAroundLand(): void {
@@ -770,9 +814,9 @@ export class LdtkReader {
       }
     }
     this.city = copyCityGrid;
-    console.log("this.city after grass", this.city);
-    console.log("ldtk", this.ldtk);
-    console.log("this.idxToRule", this.idxToRule);
+    // console.log("this.city after grass", this.city);
+    // console.log("ldtk", this.ldtk);
+    // console.log("this.idxToRule", this.idxToRule);
   }
 
   CheckSpaceForRectangle(
@@ -780,7 +824,7 @@ export class LdtkReader {
     rectangleSize: THREE.Vector2,
     direction: string
   ): boolean {
-    console.log("CORNER", corner);
+    // console.log("CORNER", corner);
     // Define increments for each direction
     let increments: { [key: string]: { x: number; y: number } } = {
       top: { x: 0, y: -1 },
@@ -793,7 +837,7 @@ export class LdtkReader {
     let endX = corner.x + increment.x * rectangleSize.x;
     let endY = corner.y + increment.y * rectangleSize.y;
 
-    console.log("endX", endX, "endY", endY, "corner", corner);
+    // console.log("endX", endX, "endY", endY, "corner", corner);
 
     // Check if the rectangle would go out of bounds
     if (
@@ -802,14 +846,14 @@ export class LdtkReader {
       endY < 0 ||
       endY >= this.citySize
     ) {
-      console.log("BORDER reached");
+      // console.log("BORDER reached");
       return false;
     }
 
     // Check if the area required for the rectangle is empty
     for (let y = corner.y; y !== endY; y += increment.y) {
       for (let x = corner.x; x !== endX; x += increment.x) {
-        console.log("(y, x)", y, x);
+        // console.log("(y, x)", y, x);
         // If the current tile is not empty (0), return false
         if (this.city[y][x] !== 0) {
           return false;
@@ -828,7 +872,7 @@ export class LdtkReader {
     } else {
       cornerType = "BottomRight";
     }
-    console.log("cornerType", cornerType);
+    // console.log("cornerType", cornerType);
     return true;
   }
 
@@ -1070,9 +1114,9 @@ export class LdtkReader {
           copyEntities[entityType][combination[i]][entityIndex].isBuilt = true;
           if (entityType === "NFT") nftCounter--;
         } else {
-          console.log(
-            "not enough NFTs to build this combination, let's try the next one"
-          );
+          // console.log(
+          //   "not enough NFTs to build this combination, let's try the next one"
+          // );
           isBuilt = false;
           break;
         }
@@ -1122,28 +1166,20 @@ export class LdtkReader {
               isHidden: true,
             };
           }
-          // // Add pointLights of buildings built
-          // const light = entity.customData?.pointlight;
-          // // console.log("light", light);
-          // const lightProps = light ? pointLightsData[light] : null;
-          // // console.log("lightProps", lightProps);
-          // if (entity?.customData) {
-          //   const offset = entity.customData?.offset;
-          //   this.lights.push({
-          //     x: xOffset + w,
-          //     y: y - h,
-          //     offset,
-          //     posX: y - h + entity.tileRect.w / 32 + offset.x,
-          //     posY: xOffset + w - entity.tileRect.h / 32 + offset.y,
-          //     type: light,
-          //     props: lightProps,
-          //   });
-          // }
         }
       }
+      if (isFirstLine && entity.fieldDefs && entity.fieldDefs.length > 0) {
+        const blockedTiles = entity.fieldDefs[0].defaultOverride?.params[0]
+          .toString()
+          .split("-");
+        blockedTiles &&
+          blockedTiles.map((tile) => {
+            this.blockedPaths.push({ x: x + parseInt(tile) - 1, y: y + 1 });
+          });
+      }
+
       x = x + entity.activeWidth;
       if (entity.customDatas) {
-        console.log("BUILDING LIGHT", entity.identifier, "x", xOffset, "y", y);
         this.addLight(
           entity.tileIdsArr,
           entity.customDatas,
@@ -1153,7 +1189,7 @@ export class LdtkReader {
         );
       }
     });
-    console.log("this.lights", this.lights);
+    // console.log("this.lights", this.lights);
   }
 
   fillRemainingSpace(rectangleSize: THREE.Vector2, x: number, y: number): void {
@@ -1172,7 +1208,7 @@ export class LdtkReader {
             remainingWidth
           );
           if (entityIndex !== -1) {
-            console.log("counter", counter);
+            // console.log("counter", counter);
             const entity = this.entities["Generic"][counter][entityIndex];
             const activeHeight = entity.activeHeight;
             this.build([entity], j, i + activeHeight, false);
@@ -1228,62 +1264,111 @@ export class LdtkReader {
   }
 
   placeProps(): void {
-    // todo: ask HP to update props so that data in grounds' CustomData have entity identifier or uid
-    console.log("this.cityBuilded", this.cityBuilded);
-    const corners = this.ldtk.defs.tilesets[0].customData;
-    for (let i = 0; i < this.cityBuilded.length; i++) {
-      for (let j = 0; j < this.cityBuilded[i].length; j++) {
+    console.log("cityBuilded", this.cityBuilded);
+    console.log("this.city", this.city);
+    console.log("this.blockedPaths", this.blockedPaths);
+    const tileset = this.ldtk.defs.tilesets[0];
+    const corners = tileset.customData;
+    let propTypesArray = Object.values(PropsTypes).filter(
+      (value) => typeof value === "number"
+    ) as PropsTypes[];
+    let propIndex = 1;
+
+    for (let i = 0; i < this.city.length; i++) {
+      for (let j = 0; j < this.city[i].length; j++) {
+        if (this.city[i][j] !== 1) continue; // if not a sidewalk continue
+        if (this.blockedPaths.find((elem) => elem.x === j && elem.y === i))
+          continue; // if blocked sidewalk continue
+
+        // handle corners
         const tile = this.cityBuilded[i][j];
+
+        // if ()
+        // checkWhichCorner(y: number, x: number): string | null  -- add null in case not a corner
+        // todo:  check that it is a sidewalk tile (so it has 0 on one side and 1 on the other) and check which side it is
+        // if it is not blocked
+        const isCorner = this.checkWhichCorner(i, j);
+        const isSide = this.checkWhichSidewalkSide(i, j);
+        console.log("not blocked", j, i, isCorner);
         if (
           corners.find(
             (corner: { tileId: number; data: string }) =>
               corner.tileId === tile?.tileId
-          )
+          ) &&
+          isCorner
         ) {
+          console.log("it is a corner");
           const entity = this.entities["Props"][0].find(
             (elem) => elem.identifier === "Props_StreetLight"
           );
           if (!entity) continue;
-          const corner = this.checkWhichCorner(i, j);
           this.cityProps[i][j] = {
-            entity: entity as Entity,
-            corner,
+            entityType: PropsTypes.LIGHT,
+            corner: isCorner,
+            z: 0,
           };
+          const offset = propsOffset[entity.identifier][isCorner];
+          this.props[PropsTypes.LIGHT].push({
+            corner: isCorner,
+            posX: j + entity.tileRect.h / 32 - 1,
+            posY: i - entity.tileRect.w / 32 - 1,
+            offset, // offset of props
+          });
           if (entity.customDatas) {
             this.addLight(
               entity.tileIdsArr,
               entity.customDatas,
-              propsOffset[entity.identifier][corner],
+              propsOffset[entity.identifier][isCorner],
               j,
               i
             );
           }
-          // const lights = entity.customDatas?.filter((elem) => elem.pointlight);
-          // console.log("LIGHTS", lights);
-          // lights?.map((light) => {
-          //   const lightType = light.pointlight;
-          //   const lightProps = light ? pointLightsData[lightType] : null;
-          //   const offset = propsOffset[entity.identifier][corner];
-          //   this.lights.push({
-          //     x: j,
-          //     y: i,
-          //     offset,
-          //     posX: j + entity.tileRect.w / 32 + offset.x -0.35,
-          //     posY: i - entity.tileRect.h / 32 + offset.y -0.35,
-          //     type: lightType,
-          //     props: lightProps,
-          //   });
-          // });
-        } else if (tile?.tileId !== -1) {
-          // todo: place a random prop
+        } else if (isSide) {
+          const hashed = this.hash(this.address);
+          let rand = this.createSeededRandom(hashed + i * j);
+          let propType: PropsTypes | null = null;
+          if (isSide === "bottom") {
+            propType = propTypesArray[propIndex];
+            if (propIndex === 4) propIndex = 1;
+            else propIndex++;
+          } else {
+            if (rand < 0.3) {
+              console.log("rand 2", rand);
+              propType = propTypesArray[propIndex];
+              if (propIndex === 3) propIndex = 1;
+              else propIndex++;
+            }
+          }
+
+          if (propType) {
+            const entity = this.entities["Props"][0].find(
+              // @ts-ignore
+              (elem) => elem.identifier === PropsTypesNames[propType]
+            );
+            if (!entity) continue;
+            const offset = propsOffset[entity.identifier][isSide] ?? {
+              x: 0,
+              y: 0,
+              z: 0,
+            };
+            this.props[propType].push({
+              posX: j,
+              posY: i - 1,
+              side: isSide,
+              offset, // offset of props
+            });
+            this.cityProps[i][j] = {
+              entityType: propType,
+              corner: isSide,
+              z: isSide === "bottom" ? 0.01 : 0,
+            };
+          }
         }
       }
     }
-    console.log("this.buildings", this.buildings);
-    console.log("this.light", this.lights);
   }
 
-  checkWhichCorner(y: number, x: number): string {
+  checkWhichCorner(y: number, x: number): string | null {
     if (this.city[y][x - 1] === 2 && this.city[y - 1][x] === 2) {
       return "topLeft";
     } else if (this.city[y][x + 1] === 2 && this.city[y - 1][x] === 2) {
@@ -1293,7 +1378,20 @@ export class LdtkReader {
     } else if (this.city[y][x + 1] === 2 && this.city[y + 1][x] === 2) {
       return "bottomRight";
     }
-    return "";
+    return null;
+  }
+
+  checkWhichSidewalkSide(y: number, x: number): string | null {
+    if (this.city[y][x - 1] === 2 && this.city[y][x + 1] === 1) {
+      return "left";
+    } else if (this.city[y][x + 1] === 2 && this.city[y][x - 1] === 1) {
+      return "right";
+    } else if (this.city[y - 1][x] === 2 && this.city[y + 1][x] === 1) {
+      return "top";
+    } else if (this.city[y + 1][x] === 2 && this.city[y - 1][x] === 1) {
+      return "bottom";
+    }
+    return null;
   }
 
   getTileIdsFromSprite(tileRect: TileRect, cWid: number): SpriteBounds {
@@ -1338,19 +1436,19 @@ export class LdtkReader {
     x: number,
     y: number
   ) {
-    console.log("tileIdsArr", tileIdsArr);
-    console.log("customDatas", customDatas);
+    // console.log("tileIdsArr", tileIdsArr);
+    // console.log("customDatas", customDatas);
     const lights = customDatas.filter((elem) => elem.pointlight);
-    console.log("offset before", offset, lights);
+    // console.log("offset before", offset, lights);
     lights?.map((light) => {
       let tempOffset = offset;
-      console.log("placing light", light);
-      console.log("offset before", tempOffset);
+      // console.log("placing light", light);
+      // console.log("offset before", tempOffset);
       const lightType = light.pointlight;
       const lightProps = light ? pointLightsData[lightType] : null;
       if (tempOffset.x === 0 && tempOffset.y === 0 && tileIdsArr) {
         tempOffset = this.findTileIn2DArray(light.tileId, tileIdsArr);
-        console.log("NEW offset", tempOffset);
+        // console.log("NEW offset", tempOffset);
         if (light.offset) {
           if (light.offset.x === 0) tempOffset.x -= 0.5;
           if (light.offset.x === 1) tempOffset.x += 0.5;
@@ -1370,6 +1468,21 @@ export class LdtkReader {
       });
     });
   }
+
+  // getBlockedPath(shuffledBuildings: EntityProps[], x: number, y: number) {
+  //   shuffledBuildings.map((building) => {
+  //     if (building.fieldDefs && building.fieldDefs.length > 0) {
+  //       const blockedTiles = building.fieldDefs[0].defaultOverride?.params[0]
+  //         .toString()
+  //         .split("-");
+  //       blockedTiles &&
+  //         blockedTiles.map((tile) => {
+  //           this.blockedPaths.push({ x: x + parseInt(tile), y: y + 1 });
+  //         });
+  //     }
+  //     x = x + building.activeWidth;
+  //   });
+  // }
 
   findTileIn2DArray(tileId: number, arr: number[][]): { x: number; y: number } {
     for (let y = 0; y < arr.length; y++) {
@@ -1399,5 +1512,18 @@ export class LdtkReader {
 
     seed = parseInt(seedStr);
     return seed;
+  }
+
+  createSeededRandom(seed: number) {
+    const x = Math.sin(seed++) * 10000;
+    return x - Math.floor(x);
+  }
+
+  hash(s: string) {
+    let hash = 0;
+    for (let i = 0; i < s.length; i++) {
+      hash = (Math.imul(31, hash) + s.charCodeAt(i)) | 0;
+    }
+    return hash;
   }
 }

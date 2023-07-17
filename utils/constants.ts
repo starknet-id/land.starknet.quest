@@ -140,7 +140,7 @@ export const pointLightsData: { [key: string]: pointLightProps } = {
     z: 1.2,
     distance: 20,
     decay: 4,
-    power : 30,
+    power: 30,
   },
   orange1: {
     intensity: 2.8,
@@ -169,7 +169,7 @@ export const pointLightsData: { [key: string]: pointLightProps } = {
     z: 0.6,
     distance: 50,
     decay: 10,
-    power : 40,
+    power: 40,
   },
   street1: {
     intensity: 2.2,
@@ -177,18 +177,41 @@ export const pointLightsData: { [key: string]: pointLightProps } = {
     z: 0.4,
     distance: 100,
     decay: 15,
-    power : 30,
+    power: 30,
   },
 };
 
 export const propsOffset: {
-  [key: string]: { [key: string]: { x: number; y: number } };
+  [key: string]: {
+    [key: string]: { x: number; y: number; z: number };
+  };
 } = {
   Props_StreetLight: {
-    topLeft: { x: 0, y: 0 },
-    topRight: { x: -0.2, y: 0 },
-    bottomLeft: { x: 0, y: -0.2 },
-    bottomRight: { x: -0.1, y: -0.2 },
+    topLeft: { x: 0.5, y: -0.3, z: 0 },
+    topRight: { x: 0.4, y: -0.3, z: 0 },
+    bottomLeft: { x: 0.5, y: -0.3, z: 0 },
+    bottomRight: { x: 0.4, y: -0.3, z: 0 },
+  },
+  Props_Tree_1x1: {
+    top: { x: 0.6, y: -0.2, z: 0 },
+    left: { x: 0.6, y: -0.2, z: 0 },
+    bottom: { x: 0.6, y: -0.4, z: 0 },
+    right: { x: 0.5, y: -0.2, z: 0 },
+  },
+  Props_SewerPlate: {
+    top: { x: 0.6, y: 0.5, z: 0 },
+    left: { x: 0.6, y: 0.5, z: 0 },
+    bottom: { x: 0.5, y: 0.4, z: 0 },
+    right: { x: 0.5, y: 0.4, z: 0 },
+  },
+  Props_FireHydrant: {
+    top: { x: 0.5, y: 0.5, z: 0 },
+    left: { x: 0.5, y: 0.4, z: 0 },
+    bottom: { x: 0.5, y: 0.3, z: 0 },
+    right: { x: 0.5, y: 0.3, z: 0 },
+  },
+  Props_BenchGrey: {
+    bottom: { x: 0.5, y: -0.3, z: 0 },
   },
 };
 
@@ -297,3 +320,23 @@ export const buildingsOrdered = {
     [4, 4, 6],
   ],
 };
+
+export enum PropsTypes {
+  LIGHT = 0,
+  TREE = 1,
+  SEWER_PLATE = 2,
+  FIRE_HYDRANT = 3,
+  BENCH = 4,
+}
+
+export const PropsTypesNames = {
+  [PropsTypes.LIGHT]: "Props_StreetLight",
+  [PropsTypes.TREE]: "Props_Tree_1x1",
+  [PropsTypes.SEWER_PLATE]: "Props_SewerPlate",
+  [PropsTypes.FIRE_HYDRANT]: "Props_FireHydrant",
+  [PropsTypes.BENCH]: "Props_BenchGrey",
+};
+
+export enum tileTypes {
+  PROPS = 0,
+}

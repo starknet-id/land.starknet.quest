@@ -5,13 +5,15 @@ import { Camera } from "./Camera";
 import { LdtkReader } from "@/utils/parser";
 import Ground from "./Ground";
 import { iLDtk } from "@/types/ldtk";
-import { AspectNftProps, CityLight } from "@/types/types";
+import { CityLight } from "@/types/types";
 import Buildings from "./Buildings";
 import { Grid } from "@react-three/drei";
 import { useGesture } from "react-use-gesture";
 import CityProps from "./CityProps";
 import { SelectiveBloom, EffectComposer } from "@react-three/postprocessing";
 import { TerrainBackground } from "./TerrainBackground";
+import { Perf } from "r3f-perf";
+import { tileTypes } from "@/utils/constants";
 
 type SceneProps = {
   address: string;
@@ -21,36 +23,29 @@ type SceneProps = {
 export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
   const refCanvas = useRef<any>();
   const indexRef = useRef<any>();
-  const [index, setIndex] = useState(10);
+  const [index, setIndex] = useState(20);
   indexRef.current = index;
-
   const [windowWidth, setWindowWidth] = useState(0);
   const [windowHeight, setWindowHeight] = useState(0);
-
-  const [keyMap, setKeyMap] = useState({
-    Escape: false,
-    KeyD: false,
-  });
   const [mouseWheelProp, setMouseWheelProp] = useState(0);
-  // const [mouseLeftPressed, setMouseLeftPressed] = useState(0);
   const [mouseRightPressed, setMouseRightPressed] = useState(0);
-  // const [mouseMiddlePressed, setMouseMiddlePressed] = useState(0);
-  // const [customMouse, setCustomMouse] = useState(new Vector2(0, 0));
   const [isFirstTouch, setIsFirstTouch] = useState(false);
 
   const [data, setData] = useState<iLDtk>();
   const [cityData, setCityData] = useState<any>(null);
-  const [propsData, setPropsData] = useState<any>(null);
+  const [propsData, setPropsData] = useState<any>(null); // todo: remove later
+  const [cityProps, setProps] = useState<any>(null);
   const [buildingData, setBuildingData] = useState<any>(null);
   const [lightData, setLightData] = useState<any>(null);
   const [citySize, setCitySize] = useState(60);
-  const [nftArray, setNftArray] = useState<any>(null);
+  const [mapReader, setMapReader] = useState<any>(null);
 
   useEffect(() => {
     if (data) {
       // todo : calculate city size and number of blocks needed
       let mapReader = new LdtkReader(data, address, citySize, userNft);
       console.log("mapReader", mapReader);
+      setMapReader(mapReader);
 
       let createTest = mapReader.CreateMap("Level_0", "SIDCity_TilesetSheet");
       console.log("createTest", createTest);
@@ -59,6 +54,7 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
       setPropsData(mapReader.cityProps);
       setBuildingData(mapReader.buildings);
       setLightData(mapReader.lights);
+      setProps(mapReader.props);
     }
   }, [data]);
 
@@ -82,75 +78,18 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
       .catch((error) => console.error("Error:", error));
   }, []);
 
-  useEffect(() => {
-    const NFTArray = {
-      0: {
-        name: "NFT_0",
-        tileUid: 5,
-      },
-      1: {
-        name: "NFT_0",
-        tileUid: 5,
-      },
-      2: {
-        name: "NFT_0",
-        tileUid: 4,
-      },
-      3: {
-        name: "NFT_0",
-        tileUid: 4,
-      },
-      4: {
-        name: "NFT_0",
-        tileUid: 3,
-      },
-      5: {
-        name: "NFT_0",
-        tileUid: 3,
-      },
-      6: {
-        name: "NFT_0",
-        tileUid: 3,
-      },
-      7: {
-        name: "NFT_0",
-        tileUid: 3,
-      },
-      8: {
-        name: "NFT_0",
-        tileUid: 2,
-      },
-      9: {
-        name: "NFT_0",
-        tileUid: 2,
-      },
-    };
-    setNftArray(NFTArray);
-  }, []);
-
   // Controls
   useEffect(() => {
-    const handleKeyDown = (event: any) => {
-      setKeyMap((m) => ({ ...m, [event.code]: true }));
-    };
-    const handleKeyUp = (event: any) => {
-      setKeyMap((m) => ({ ...m, [event.code]: false }));
-    };
     const handleMouseWheelProp = (event: any) => {
-      if (event.deltaY > 0 && indexRef.current > 4) {
+      if (event.deltaY > 0 && indexRef.current > 8) {
         setIndex(() => indexRef.current - 1);
-      } else if (event.deltaY < 0 && indexRef.current < 20) {
+      } else if (event.deltaY < 0 && indexRef.current < 25) {
         setIndex(() => indexRef.current + 1);
       }
     };
-
-    document.addEventListener("keydown", handleKeyDown);
-    document.addEventListener("keyup", handleKeyUp);
     const passiveObject: any = { passive: true };
     document.addEventListener("wheel", handleMouseWheelProp, passiveObject);
     return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      document.removeEventListener("keyup", handleKeyUp);
       const passiveObject: any = { passive: true };
       document.removeEventListener(
         "wheel",
@@ -180,18 +119,8 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
           setMouseRightPressed(0);
         }
       },
-      //   onPinch: ({ delta, first, memo }) => {
-      //     if (first) {
-      //       if (delta[0] > 0 && indexRef.current > 4) {
-      //         setIndex(() => indexRef.current - 1);
-      //       } else if (delta[0] < 0 && indexRef.current < 20) {
-      //         setIndex(() => indexRef.current + 1);
-      //       }
-      //     }
-      //   },
     },
     { eventOptions: { passive: true } }
-    // , domTarget: refCanvas
   );
 
   return (
@@ -205,7 +134,9 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
         onContextMenu={(event) => {
           event.preventDefault();
         }}
+        // frameloop="demand"
       >
+        {/* <Perf position="top-left" style={{ marginLeft: "20px" }} /> */}
         <color attach="background" args={["#1a1528"]} />
         {/* <EffectComposer> */}
         {/* <SelectiveBloom
@@ -221,22 +152,12 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
           luminanceSmoothing={0.025} // smoothness of the luminance threshold. Range is [0, 1]
         /> */}
         {/* </EffectComposer> */}
-        {/* <ambientLight color={0xffffff} intensity={0.9} /> */}
-        <directionalLight
-          color="#1b1a34"
-          intensity={5}
-          // position={[12, 12, 8]}
-        />
-        <ambientLight
-          color = "#9902fc"
-          intensity={0.1}
-        />
-
+        <directionalLight color="#1b1a34" intensity={5} />
+        <ambientLight color="#9902fc" intensity={0.1} />
 
         <Camera
           aspect={windowWidth / windowHeight}
           mouseRightPressed={mouseRightPressed}
-          mouseWheelProp={mouseWheelProp}
           index={index}
           citySize={citySize}
           isFirstTouch={isFirstTouch}
@@ -261,7 +182,12 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
         ) : null}
 
         {data && propsData ? (
-          <CityProps tilesets={data?.defs.tilesets} cityData={propsData} />
+          <CityProps
+            tilesets={data?.defs.tilesets}
+            cityData={propsData}
+            propsData={cityProps}
+            tileData={mapReader.tileData[tileTypes.PROPS]}
+          />
         ) : null}
 
         {data && buildingData ? (
@@ -279,11 +205,12 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
                   key={`light_${light.posX}_${light.posY}_${index}`}
                   position={[light.posX, z, light.posY]}
                   {...light.props}
+                  castShadow={false}
                 />
               );
             })
           : null}
-        {/* <TerrainBackground /> */}
+        <TerrainBackground />
       </Canvas>
     </>
   );

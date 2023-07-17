@@ -1,12 +1,23 @@
-import { useFrame } from "@react-three/fiber";
-import React, { useEffect, useMemo, useState } from "react";
-import { TextureLoader, RepeatWrapping, NearestFilter } from "three";
+import { useFrame, useLoader } from "@react-three/fiber";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  TextureLoader,
+  RepeatWrapping,
+  NearestFilter,
+  PlaneGeometry,
+} from "three";
 
 export const TerrainBackground = () => {
-  const [currentFrame, setCurrentFrame] = useState(0);
+  const skyRef = useRef<any>();
   const [spriteData, setSpriteData] = useState<any>();
   const posX = [-20, -10, 0, 10, 20, 30, 40, 50, 60, 70, 80];
   const posY = [-10, 0, 10, 20, 30, 40, 50, 60, 70, 80];
+  const skyTexture = useLoader(
+    TextureLoader,
+    "textures/background/SID_Background_SpaceLoop_old.png"
+  );
+  skyTexture.wrapS = skyTexture.wrapT = RepeatWrapping;
+  skyTexture.magFilter = NearestFilter;
 
   useEffect(() => {
     fetch("/data/SID_Background_SpaceLoop.json")
@@ -26,63 +37,47 @@ export const TerrainBackground = () => {
     if (spriteData) return Object.values(spriteData.frames) as any;
   }, [spriteData]);
 
-  const textureLoader = useMemo(() => {
-    const textObj = new TextureLoader().load(
-      "textures/background/SID_Background_SpaceLoop_old.png"
-    );
-    textObj.wrapS = RepeatWrapping;
-    textObj.wrapT = RepeatWrapping;
-    textObj.magFilter = NearestFilter;
-    return textObj;
-  }, []);
-
-  useEffect(() => {
-    if (frames) {
-      const interval = setInterval(() => {
-        setCurrentFrame((currentFrame + 1) % frames.length);
-      }, frames[0].duration);
-      return () => clearInterval(interval);
-    }
-  }, [currentFrame, frames]);
-
-  useFrame(() => {
-    if (frames) {
-      const { frame } = frames[currentFrame];
-      textureLoader.offset.set(
+  useFrame(({ clock }) => {
+    if (frames && skyRef.current) {
+      const index = Math.floor((clock.getElapsedTime() * 10) % frames.length);
+      const { frame } = frames[index];
+      skyTexture.offset.set(
         frame.x / spriteData.meta.size.w,
         1 - frame.y / spriteData.meta.size.h - frame.h / spriteData.meta.size.h
       );
-      textureLoader.repeat.set(
+      skyTexture.repeat.set(
         frame.w / spriteData.meta.size.w,
         frame.h / spriteData.meta.size.h
       );
-      textureLoader.needsUpdate = true;
+      skyTexture.needsUpdate = true;
+      skyRef.current.map = skyTexture;
     }
   });
+
+  const plane = useMemo(() => {
+    return new PlaneGeometry(10, 10, 1, 1);
+  }, []);
 
   return posX.map((x, i) => {
     return posY.map((y, j) => {
       return (
-        <>
-          <mesh
-            position={[x, -0.2, y]}
+        <mesh
+          key={`${x}-${y}`}
+          position={[x, -0.2, y]}
+          name={"terrainBackgroundGeometry_" + i + j}
+          rotation={[-Math.PI * 0.5, 0, 0]}
+          geometry={plane}
+        >
+          <meshPhongMaterial
+            ref={skyRef}
+            attach="material"
+            map={skyTexture}
             name={"terrainBackgroundGeometry_" + i + j}
-            rotation={[-Math.PI * 0.5, 0, 0]}
-          >
-            <planeGeometry
-              name={"terrainGeometry_" + i + j}
-              attach="geometry"
-              args={[10, 10, 1, 1]}
-            />
-            <meshBasicMaterial
-              attach="material"
-              map={textureLoader}
-              transparent={true}
-              depthWrite={false}
-              depthTest={true}
-            />
-          </mesh>
-        </>
+            transparent={true}
+            depthWrite={false}
+            depthTest={true}
+          />
+        </mesh>
       );
     });
   });

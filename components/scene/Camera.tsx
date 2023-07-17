@@ -2,7 +2,6 @@ import React, {
   useLayoutEffect,
   useRef,
   useState,
-  useMemo,
   FunctionComponent,
 } from "react";
 import { useThree, useFrame } from "@react-three/fiber";
@@ -21,7 +20,6 @@ type CameraProps = {
 export const Camera: FunctionComponent<CameraProps> = ({
   aspect,
   mouseRightPressed,
-  mouseWheelProp,
   index,
   citySize,
   isFirstTouch,
@@ -30,32 +28,16 @@ export const Camera: FunctionComponent<CameraProps> = ({
   const set = useThree(({ set }) => set);
   const size = useThree(({ size }) => size);
   const [tempMousePos, setTempMousePos] = useState(new Vector2(0, 0));
-  const [cameraPositionX, setCameraPositionX] = useState(
-    Math.floor(citySize / 2)
-  );
+  const [cameraPositionX, setCameraPositionX] = useState(Math.floor(25));
   const [cameraPositionY, setCameraPositionY] = useState(
-    Math.floor(citySize * 3)
+    Math.floor(citySize / 2)
   );
   const [cameraPositionZ, setCameraPositionZ] = useState(
-    Math.floor(citySize / 2)
+    Math.floor(citySize / 3)
   );
-  const [zoom, setZoom] = useState(0);
-  const [wayX, setWayX] = useState(0);
-  const [wayZ, setWayZ] = useState(0);
-  const [wayY, setWayY] = useState(0);
-
-  const mouseWheelValue = useMemo(() => {
-    // console.log(mouseWheelProp);
-    if (mouseWheelProp != null) {
-      setZoom(1);
-      return mouseWheelProp;
-    }
-  }, [mouseWheelProp]);
 
   useFrame(({ mouse }) => {
     if (cameraRef.current != null) {
-      // console.log("touch", pointer, mouse);
-      // CLASSIC INPUTS
       setCameraPositionY(15 * index);
       if (mouseRightPressed == 1) {
         const posX = cameraPositionX;

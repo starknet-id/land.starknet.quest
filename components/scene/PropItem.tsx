@@ -1,110 +1,80 @@
-import { CityProps, pointLightProps } from "@/types/types";
-import { pointLightsData, propsOffset } from "@/utils/constants";
-import { getValFromCustomData } from "@/utils/landUtils";
-import { memo, useMemo, useState } from "react";
+import { CityObjectsProps, TileData } from "@/types/types";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { InstancedMesh, Mesh } from "three";
 
 type IElem = {
   tileset: any;
-  pos: { posX: number; posY: number };
-  tileData: CityProps;
+  pos?: { posX: number; posY: number };
   textureLoader: THREE.Texture;
+  propData: CityObjectsProps[];
   entity?: any;
+  index: number;
+  tileData: TileData;
 };
 
 const PropsItem = memo<IElem>(
-  ({ tileset, tileData, pos, textureLoader, entity }): any => {
+  ({ tileset, pos, textureLoader, propData, entity, index, tileData }): any => {
     const [localTexture, setLocalTexture] = useState<any>(null);
-    // const [pointLight, setPointLight] = useState<pointLightProps | null>();
-    const [offsetX, setOffsetX] = useState<number>(0);
-    const [offsetY, setOffsetY] = useState<number>(0);
+    const lightMeshRef = useRef<InstancedMesh>(null);
+    const tempObject = new Mesh();
 
     const elemTexture = useMemo(() => {
       if (tileset && textureLoader) {
-        const entity = tileData.entity;
         const localT = textureLoader.clone();
         localT.needsUpdate = true;
-
-        let spritesPerRow = tileset.pxWid / tileset.tileGridSize; // 80 sprites per row : 1280/16
-        let spritesPerColumn = tileset.pxHei / tileset.tileGridSize; // 80 sprites per column:  1280/16
-        let xIndex = entity.tileRect.x / tileset.tileGridSize;
-        let yIndex = entity.tileRect.y / tileset.tileGridSize;
-        let xOffset = xIndex / spritesPerRow;
-        let yOffset = 1 - (yIndex + entity.tileRect.h / 16) / spritesPerColumn; // Add 1 to yIndex because the y-axis starts from the bottom, not from the top
-        localT.offset.set(xOffset, yOffset);
-
-        localT.repeat.set(
-          1 / (spritesPerRow / (entity.tileRect.w / tileset.tileGridSize)),
-          1 / (spritesPerColumn / (entity.tileRect.h / tileset.tileGridSize))
-        );
-
-        setLocalTexture(localT);
-
-        // set customData if we have some > especially pointLight
-        // if (entity.customData) {
-        //   const light = getValFromCustomData("pointLight", entity.customData);
-        //   if (light) setPointLight(pointLightsData[light]);
-        //   else setPointLight(null);
-        // }
-
-        // add offset depending on where props is placed on sidewalk
-        if (tileData.corner) {
-          const offset = propsOffset[entity.identifier][tileData.corner];
-          setOffsetX(offset.x);
-          setOffsetY(offset.y);
-        }
-
+        localT.offset.set(tileData.textureOffset.x, tileData.textureOffset.y);
+        localT.repeat.set(tileData.textureRepeat.x, tileData.textureRepeat.y);
         return localT;
       }
-    }, [textureLoader, tileset, tileData]);
+    }, [textureLoader, tileset]);
+
+    useEffect(() => {
+      if (lightMeshRef == null || !lightMeshRef.current) return;
+
+      let i = 0;
+      propData.map((prop: CityObjectsProps) => {
+        const id = i++;
+        let offset = { x: 0, y: 0, z: 0 };
+        if (prop.offset)
+          offset = {
+            x: prop?.offset.x ?? 0,
+            y: prop?.offset.y ?? 0,
+            z: prop?.offset.z ?? 0,
+          };
+        tempObject.position.set(
+          prop.posX + offset.x + 1,
+          tileData.z + offset.z,
+          prop.posY + offset.y - 2
+        );
+        tempObject.rotation.set(-Math.PI * 0.5, 0, 0);
+        tempObject.updateMatrix();
+        if (lightMeshRef.current)
+          lightMeshRef.current.setMatrixAt(id, tempObject.matrix);
+      });
+      lightMeshRef.current.instanceMatrix.needsUpdate = true;
+    }, [propData]);
 
     return (
-      <>
-        <mesh
-          position={[
-            pos.posX + tileData.entity.tileRect.w / 32 + offsetX,
-            // 0.22 + pos.posY * 0.02,
-            0.22,
-            pos.posY - tileData.entity.tileRect.h / 32 + offsetY,
-          ]}
-          name={`${tileData.entity.tileRect.tilesetUid}_props`.toString()}
-          rotation={[-Math.PI * 0.5, 0, 0]}
-        >
-          <planeGeometry
-            name={
-              `${tileData.entity.tileRect.tilesetUid}_props`.toString() +
-              "_geom"
-            }
-            attach="geometry"
-            args={[
-              tileData.entity.tileRect.w / 16,
-              tileData.entity.tileRect.h / 16,
-              1,
-              1,
-            ]}
-          />
-          <meshStandardMaterial
-            attach="material"
-            map={localTexture}
-            name={
-              `${tileData.entity.tileRect.tilesetUid}_props`.toString() + "_mat"
-            }
-            transparent={true}
-            depthWrite={false}
-            depthTest={true}
-          />
-        </mesh>
-        {/* {pointLight ? (
-          <pointLight
-            position={[
-              pos.posX + tileData.entity.tileRect.w / 32 + offsetX,
-              0.22 + pos.posY * 0.02 + pointLight?.z,
-              pos.posY - tileData.entity.tileRect.h / 32 + offsetY - 0.5,
-            ]}
-            intensity={pointLight?.intensity}
-            color={pointLight?.color}
-          />
-        ) : null} */}
-      </>
+      <instancedMesh
+        ref={lightMeshRef}
+        args={[null as any, null as any, propData.length]}
+      >
+        <planeGeometry
+          name={"props_geom"}
+          attach="geometry"
+          args={[tileData.plane.w, tileData.plane.h, 1, 1]}
+        ></planeGeometry>
+        <meshBasicMaterial
+          attach="material"
+          map={localTexture}
+          name={
+            `${tileData.entity.tileRect.tilesetUid}_props`.toString() + "_mat"
+          }
+          transparent={true}
+          depthWrite={false}
+          depthTest={true}
+        />
+      </instancedMesh>
     );
   }
 );
