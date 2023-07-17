@@ -68,7 +68,7 @@ export const TerrainBackground = () => {
           rotation={[-Math.PI * 0.5, 0, 0]}
           geometry={plane}
         >
-          <meshPhongMaterial
+          <meshBasicMaterial
             ref={skyRef}
             attach="material"
             map={skyTexture}
