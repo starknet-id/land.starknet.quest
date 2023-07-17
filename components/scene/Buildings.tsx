@@ -1,8 +1,9 @@
-import React, { ReactNode, useMemo } from "react";
+import React, { ReactNode } from "react";
 import { TextureLoader, RepeatWrapping, NearestFilter, Vector2 } from "three";
 import { CityBuildings } from "@/types/types";
 import BuildingItem from "./BuildingItem";
 import { Tileset } from "@/types/ldtk";
+import { useLoader } from "@react-three/fiber";
 
 type IBuildings = {
   tilesets: Tileset[];
@@ -13,40 +14,28 @@ export default function Buildings({
   tilesets,
   buildingData,
 }: IBuildings): ReactNode {
-  // Loading textures
-  const textureLoader = useMemo(() => {
-    let textures: any[] = [];
-    tilesets.forEach((tileset) => {
-      if (tileset.uid !== 1) {
-        let textObj;
-        textObj = new TextureLoader().load(
-          `/textures/${tileset.identifier}.png`
-        );
-        textObj.repeat = new Vector2(1 / tileset.__cHei, 1 / tileset.__cWid);
-        textObj.magFilter = NearestFilter;
-        textObj.wrapS = RepeatWrapping;
-        textObj.wrapT = RepeatWrapping;
-        textures[tileset.uid] = textObj;
-      }
-    });
-    return textures;
-  }, []);
+  const buildingTexture = useLoader(
+    TextureLoader,
+    "/textures/SID_BuildingSheet.png"
+  );
+  const neonTexture = useLoader(
+    TextureLoader,
+    "/textures/SID_BuildingSheetr_Neons.png"
+  );
+  const tileset = tilesets[2];
+  buildingTexture.repeat = new Vector2(1 / tileset.__cHei, 1 / tileset.__cWid);
+  buildingTexture.magFilter = NearestFilter;
+  buildingTexture.wrapS = RepeatWrapping;
+  buildingTexture.wrapT = RepeatWrapping;
 
-  const neonTexture = useMemo(() => {
-    let textObj;
-    textObj = new TextureLoader().load(
-      "/textures/SID_BuildingSheetr_Neons.png"
-    );
-    textObj.repeat = new Vector2(1 / 80, 1 / 80);
-    textObj.magFilter = NearestFilter;
-    textObj.wrapS = RepeatWrapping;
-    textObj.wrapT = RepeatWrapping;
-    return textObj;
-  }, []);
+  neonTexture.repeat = new Vector2(1 / tileset.__cHei, 1 / tileset.__cWid);
+  neonTexture.magFilter = NearestFilter;
+  neonTexture.wrapS = RepeatWrapping;
+  neonTexture.wrapT = RepeatWrapping;
 
   return (
     <>
-      {textureLoader &&
+      {buildingTexture &&
         buildingData.map((tileX: any, iY: number) => {
           return tileX.map((tileData: CityBuildings, iX: number) => {
             if (
@@ -64,7 +53,7 @@ export default function Buildings({
                     (tileset) => tileset.uid === tileData.tile.tilesetUid
                   )[0]
                 }
-                textureLoader={textureLoader[tileData.tile.tilesetUid]}
+                textureLoader={buildingTexture}
                 neonTexture={neonTexture}
                 tileData={tileData.tile}
                 pos={{ posX: iX, posY: iY }}

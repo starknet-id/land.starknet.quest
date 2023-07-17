@@ -1,7 +1,8 @@
-import React, { ReactNode, useMemo } from "react";
+import React, { ReactNode } from "react";
 import { TextureLoader, RepeatWrapping, NearestFilter, Vector2 } from "three";
 import ResourceItem from "./Item";
 import { CityBuilded } from "@/types/types";
+import { useLoader } from "@react-three/fiber";
 
 type IGround = {
   tileset: any;
@@ -9,20 +10,18 @@ type IGround = {
 };
 
 export default function Ground({ tileset, cityData }: IGround): ReactNode {
-  // Loading textures
-  const textureLoader = useMemo(() => {
-    let textObj;
-    textObj = new TextureLoader().load("/textures/SIDCity_TilesetSheet.png");
-    textObj.repeat = new Vector2(1 / tileset.__cHei, 1 / tileset.__cWid);
-    textObj.magFilter = NearestFilter;
-    textObj.wrapS = RepeatWrapping;
-    textObj.wrapT = RepeatWrapping;
-    return textObj;
-  }, []);
+  const groundTexture = useLoader(
+    TextureLoader,
+    "textures/SIDCity_TilesetSheet.png"
+  );
+  groundTexture.repeat = new Vector2(1 / tileset.__cHei, 1 / tileset.__cWid);
+  groundTexture.magFilter = NearestFilter;
+  groundTexture.wrapS = RepeatWrapping;
+  groundTexture.wrapT = RepeatWrapping;
 
   return (
     <>
-      {textureLoader &&
+      {groundTexture &&
         cityData.map((tileX: any, iY: number) => {
           return tileX.map((tileData: CityBuilded, iX: number) => {
             if (tileData === null || tileData.tileId === undefined) {
@@ -32,7 +31,7 @@ export default function Ground({ tileset, cityData }: IGround): ReactNode {
               <ResourceItem
                 key={`tile-${iX}-${iY}`}
                 tileset={tileset}
-                textureLoader={textureLoader}
+                textureLoader={groundTexture}
                 tileData={tileData}
                 pos={{ posX: iX, posY: iY }}
               />

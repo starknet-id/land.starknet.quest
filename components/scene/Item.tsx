@@ -1,6 +1,7 @@
 import { CityBuilded } from "@/types/types";
 import { useFrame } from "@react-three/fiber";
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useMemo, useRef, useState } from "react";
+import { MeshPhongMaterial, PlaneGeometry } from "three";
 
 type IElem = {
   tileset: any;
@@ -14,6 +15,11 @@ const ResourceItem = memo<IElem>(
   ({ tileset, tileData, pos, textureLoader, entity }): any => {
     const meshRef = useRef<any>();
     const [localTexture, setLocalTexture] = useState<any>(null);
+    const plane = new PlaneGeometry(1, 1, 1, 1);
+    const material = new MeshPhongMaterial({
+      map: localTexture,
+      transparent: true,
+    });
 
     const elemTexture = useMemo(() => {
       if (tileset && textureLoader) {
@@ -60,8 +66,10 @@ const ResourceItem = memo<IElem>(
           // position={[pos.posX + 0.5, 0.22 + pos.posY * 0.02, pos.posY - 0.5]}
           name={`nameblock`.toString()}
           rotation={[-Math.PI * 0.5, 0, 0]}
+          geometry={plane}
+          material={material}
         >
-          <planeGeometry
+          {/* <planeGeometry
             name={`nameblock`.toString() + "_geom"}
             attach="geometry"
             args={[1, 1, 1, 1]}
@@ -73,7 +81,7 @@ const ResourceItem = memo<IElem>(
             transparent={true}
             depthWrite={false}
             depthTest={true}
-          />
+          /> */}
         </mesh>
       </>
     );

@@ -7,6 +7,7 @@ import { useConnectors, useAccount, useProvider } from "@starknet-react/core";
 import Wallets from "../Connect/wallets";
 import { useDisplayName } from "@/hooks/displayName";
 import ModalMessage from "./modalMessage";
+import { constants } from "starknet";
 
 const Navbar: FunctionComponent = () => {
   const [nav, setNav] = useState<boolean>(false);
@@ -36,16 +37,14 @@ const Navbar: FunctionComponent = () => {
   useEffect(() => {
     if (!isConnected) return;
 
-    const STARKNET_NETWORK = {
-      mainnet: "0x534e5f4d41494e",
-      testnet: "0x534e5f474f45524c49",
-    };
-
     provider.getChainId().then((chainId) => {
-      if (chainId === STARKNET_NETWORK.testnet && network === "mainnet") {
+      if (
+        chainId === constants.StarknetChainId.SN_GOERLI &&
+        network === "mainnet"
+      ) {
         setIsWrongNetwork(true);
       } else if (
-        chainId === STARKNET_NETWORK.mainnet &&
+        chainId === constants.StarknetChainId.SN_MAIN &&
         network === "testnet"
       ) {
         setIsWrongNetwork(true);
