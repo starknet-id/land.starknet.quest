@@ -250,6 +250,9 @@ export class LdtkReader {
             ...getCustomDataArr(elem.data),
           };
         });
+        if (entity.identifier === "Props_StreetLight") {
+          customDatas = [{ tileId: 1, pointlight: "street1" }];
+        }
       }
 
       const entityProps: EntityProps = {
@@ -1311,7 +1314,7 @@ export class LdtkReader {
               entity.tileIdsArr,
               entity.customDatas,
               propsOffset[entity.identifier][isCorner],
-              j,
+              j - 0.35,
               i
             );
           }

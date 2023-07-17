@@ -196,7 +196,7 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
           />
         ) : null}
 
-        {/* {data && lightData
+        {data && lightData
           ? lightData.map((light: CityLight, index: number) => {
               const z = light.props ? light.props.z : 0.6;
               return (
@@ -208,7 +208,7 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
                 />
               );
             })
-          : null} */}
+          : null}
         <TerrainBackground />
       </Canvas>
     </>
