@@ -206,7 +206,7 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
               );
             })
           : null} */}
-        {/* <TerrainBackground /> */}
+        <TerrainBackground />
       </Canvas>
     </>
   );
