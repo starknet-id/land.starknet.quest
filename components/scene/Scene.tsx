@@ -118,8 +118,8 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
           setMouseRightPressed(0);
         }
       },
-    },
-    { eventOptions: { passive: true } }
+    }
+    // { eventOptions: { passive: true } }
   );
 
   return (
