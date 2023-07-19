@@ -2,7 +2,6 @@ import React, { ReactNode } from "react";
 import { TextureLoader, RepeatWrapping, NearestFilter, Vector2 } from "three";
 import { CityObjectsProps, CityProps, TileData } from "@/types/types";
 import { Tileset } from "@/types/ldtk";
-import PropsItem from "./PropItem";
 import { useLoader } from "@react-three/fiber";
 import PropItemMesh from "./PropItemMesh";
 

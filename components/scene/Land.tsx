@@ -4,22 +4,24 @@ import React, { useEffect, useState } from "react";
 import { Scene } from "./Scene";
 import { LandsNFTs } from "@/utils/constants";
 import { checkAssetInLands, checkAssetInSq } from "@/utils/sortNfts";
+import { isHexString } from "@/utils/stringService";
 
 type LandProps = {
   address: string;
 };
 
 export const Land = ({ address }: LandProps) => {
-  const [userNft, setUserNft] = useState<{ [key: string]: boolean | number }>();
-  // on fetch et on filtre les NFTs du user
+  const [userNft, setUserNft] = useState<{
+    [key: string]: boolean | number;
+  }>();
 
   useEffect(() => {
     if (address) {
+      console.log("address", address);
       retrieveAssets(
         `https://${
           process.env.NEXT_PUBLIC_IS_TESTNET === "true" ? "api-testnet" : "api"
-        }.aspect.co/api/v0/assets?owner_address=0x61b6c0a78f9edf13cea17b50719f3344533fadd470b8cb29c2b4318014f52d3`
-        // }.aspect.co/api/v0/assets?owner_address=${decimalToHex("address")}`
+        }.aspect.co/api/v0/assets?owner_address=${address}`
       ).then((data) => {
         filterAssets(data.assets);
       });
@@ -30,7 +32,6 @@ export const Land = ({ address }: LandProps) => {
     url: string,
     accumulatedAssets: AspectNftProps[] = []
   ): Promise<AspectApiResult> => {
-    // console.log("retrieving assets");
     return fetch(url, {
       method: "GET",
       headers: {
@@ -44,6 +45,7 @@ export const Land = ({ address }: LandProps) => {
     })
       .then((res) => res.json())
       .then((data) => {
+        console.log("data", data);
         const assets = [...accumulatedAssets, ...data.assets];
         if (data.next_url) {
           return retrieveAssets(data.next_url, assets);
@@ -91,8 +93,9 @@ export const Land = ({ address }: LandProps) => {
       );
       checkAssetInSq(asset, finalNFTs);
     }
+
     setUserNft(finalNFTs);
-    // console.log("finalNFTs", finalNFTs);
+    console.log("finalNFTs", finalNFTs);
   };
 
   return (
@@ -106,7 +109,7 @@ export const Land = ({ address }: LandProps) => {
           overflow: "hidden",
         }}
       >
-        <Scene address={address} userNft={userNft} />
+        {userNft ? <Scene address={address} userNft={userNft} /> : null}
       </div>
     </>
   );

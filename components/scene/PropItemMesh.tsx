@@ -36,7 +36,7 @@ const PropItemMesh = memo<IElem>(
       <mesh
         position={[
           pos.posX + offset.x,
-          0.22 + offset.z + propData.z,
+          0.22 + offset.z + propData.z + pos.posY * 0.02,
           pos.posY - 1 + offset.y,
         ]}
         name={`${tileData.entity.tileRect.tilesetUid}_props`.toString()}

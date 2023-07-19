@@ -27,7 +27,7 @@ export default function App({ Component, pageProps }: AppProps) {
   });
 
   return (
-    <StarknetConfig connectors={connectors} autoConnect>
+    <StarknetConfig connectors={connectors}>
       <StarknetIdJsProvider>
         <Component {...pageProps} />
       </StarknetIdJsProvider>

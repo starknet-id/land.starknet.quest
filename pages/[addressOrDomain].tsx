@@ -1,9 +1,7 @@
 import { Land } from "@/components/scene/Land";
-import { Scene } from "@/components/scene/Scene";
+import Navbar from "@/components/scene/UI/navbar";
 import { StarknetIdJsContext } from "@/context/StarknetIdJsProvider";
-import { AspectApiResult, AspectNftProps, Identity } from "@/types/types";
-import { NFTContracts } from "@/utils/constants";
-import { getGridPositionFromTileset } from "@/utils/def";
+import { Identity } from "@/types/types";
 import { decimalToHex, hexToDecimal } from "@/utils/feltService";
 import { getIdentityData } from "@/utils/identity";
 import { isHexString, minifyAddress } from "@/utils/stringService";
@@ -90,7 +88,8 @@ const AddressOrDomain: NextPage = () => {
 
   return identity && identity.addr ? (
     <>
-      <Land address={identity.addr} />
+      <Navbar />
+      {identity.addr ? <Land address={decimalToHex(identity.addr)} /> : null}
     </>
   ) : null;
 };

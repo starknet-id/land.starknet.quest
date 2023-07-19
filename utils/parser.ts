@@ -30,6 +30,7 @@ import {
   PropsTypes,
   PropsTypesNames,
   tileTypes,
+  LandsNFTs,
 } from "./constants";
 import {
   calculateCityCenter,
@@ -41,7 +42,6 @@ import {
   needsDirectionChange,
   setDirectionBasedOnCorner,
   shuffleAndHandleCorners,
-  shuffleArray,
 } from "./landUtils";
 
 export class LdtkReader {
@@ -71,12 +71,13 @@ export class LdtkReader {
   blockedPaths: Array<{ x: number; y: number }> = []; // ok
   props: Array<Array<CityObjectsProps>> = [];
   tileData: Record<tileTypes, TileData[]>; // ok
+  blocks: Array<{ w: number; h: number; nfts: EntityProps[] }> = [];
 
   constructor(
     filejson: any,
     address: string,
     citySize: number,
-    userNft?: { [key: string]: boolean | number }
+    userNft: { [key: string]: boolean | number }
   ) {
     this.json = filejson;
     this.tilesets = this.json.defs.tilesets;
@@ -158,8 +159,62 @@ export class LdtkReader {
     });
   }
 
-  // TODO: filter depending on NFTs
-  sortEntities(userNft?: { [key: string]: boolean | number }) {
+  sortEntities(userNft: { [key: string]: boolean | number }) {
+    let nftNames: string[] = [];
+    if (userNft) {
+      const ArgentX: number = userNft["argentxCounter"] as number;
+      const Braavos: number = userNft["braavosCounter"] as number;
+      if (Braavos >= 2) {
+        const braavosLevels: { [key: number]: string[] } =
+          LandsNFTs["braavos"]["levels"];
+        nftNames.push(...braavosLevels[Braavos]);
+      }
+      if (ArgentX >= 2) {
+        const argentLevels: { [key: number]: string[] } =
+          LandsNFTs["argentx"]["levels"];
+        nftNames.push(...argentLevels[ArgentX]);
+      }
+
+      // StarknetQuest
+      const SQLevels: { [key: string]: string } = LandsNFTs["sq"]["levels"];
+      nftNames.push(SQLevels.starknetID as string);
+      if (userNft.hasAVNU) {
+        nftNames.push(SQLevels.hasAVNU as string);
+      }
+      if (userNft.hasJediSwap) {
+        nftNames.push(SQLevels.hasJediSwap as string);
+      }
+      // todo: uncomment when nft is ready
+      // if (userNft.hasSIDShield) {
+      //   nftNames.push(SQLevels.hasSIDShield as string);
+      // }
+      if (userNft.hasSIDTotem) {
+        nftNames.push(SQLevels.hasSIDTotem as string);
+      }
+      if (userNft.hasZkLend) {
+        nftNames.push(SQLevels.hasZkLend as string);
+      }
+      if ((userNft.starkFighterLevel as number) > 0) {
+        if ((userNft.starkFighterLevel as number) < 3) {
+          nftNames.push(
+            (SQLevels.starkFighterLevel as string) +
+              userNft.starkFighterLevel.toString()
+          );
+        } else {
+          nftNames.push("NFT_StarkFighter_4x2_H5_3");
+        }
+      }
+      nftNames.push("NFT_StarkNews_4x3_H7");
+      if ((userNft.totalNFTs as number) >= 5)
+        nftNames.push("NFT_StarkCoin_3x2_H2");
+      if ((userNft.totalNFTs as number) >= 10)
+        nftNames.push("NFT_SushiRest_4x2_H2");
+      if ((userNft.totalNFTs as number) >= 15)
+        nftNames.push("NFT_PepperBar_4x3_H2");
+
+      console.log("nftNames", nftNames);
+    }
+
     let entitiesSorted: { [key: string]: { [key: number]: EntityProps[] } } =
       {};
     this.ldtk.defs.entities.forEach((entity: Entity) => {
@@ -170,107 +225,115 @@ export class LdtkReader {
       let level = 0;
       let key = "";
       const splittedId = entity.identifier.split("_");
+      let needToBeAdded = false;
 
       if (splittedId[0] === "NFT") {
-        key = "NFT";
-        if (
-          splittedId.length === 5 &&
-          (splittedId[1].startsWith("BraavosMain") ||
-            splittedId[1].startsWith("ArgentMain"))
-        ) {
-          activeWidth = parseInt(splittedId[2][0]);
-          activeHeight = parseInt(splittedId[2][2]);
-          heightGroup = parseInt(splittedId[3][1]);
-          level = parseInt(splittedId[4][0]);
-        } else if (
-          splittedId.length === 5 &&
-          splittedId[1].startsWith("ArgentExplorer")
-        ) {
-          // we have to do this until we fix the json file
-          level = parseInt(splittedId[2][0]);
-          heightGroup = parseInt(splittedId[4][1]);
-          activeWidth = parseInt(splittedId[3][0]);
-          activeHeight = parseInt(splittedId[3][2]);
-        } else if (
-          splittedId.length === 5 &&
-          !splittedId[1].startsWith("BraavosMain") &&
-          !splittedId[1].startsWith("ArgentMain") &&
-          !splittedId[1].startsWith("ArgentExplorer")
-        ) {
-          // no levels but a corner
-          corner = splittedId[4];
-          heightGroup = parseInt(splittedId[3][1]);
-          activeWidth = parseInt(splittedId[2][0]);
-          activeHeight = parseInt(splittedId[2][2]);
-        } else {
-          heightGroup = parseInt(splittedId[3][1]);
-          activeWidth = parseInt(splittedId[2][0]);
-          activeHeight = parseInt(splittedId[2][2]);
+        if (nftNames.includes(entity.identifier)) {
+          needToBeAdded = true;
+          key = "NFT";
+          if (
+            splittedId.length === 5 &&
+            (splittedId[1].startsWith("BraavosMain") ||
+              splittedId[1].startsWith("ArgentMain"))
+          ) {
+            activeWidth = parseInt(splittedId[2][0]);
+            activeHeight = parseInt(splittedId[2][2]);
+            heightGroup = parseInt(splittedId[3][1]);
+            level = parseInt(splittedId[4][0]);
+          } else if (
+            splittedId.length === 5 &&
+            splittedId[1].startsWith("ArgentExplorer")
+          ) {
+            // we have to do this until we fix the json file
+            level = parseInt(splittedId[2][0]);
+            heightGroup = parseInt(splittedId[4][1]);
+            activeWidth = parseInt(splittedId[3][0]);
+            activeHeight = parseInt(splittedId[3][2]);
+          } else if (
+            splittedId.length === 5 &&
+            !splittedId[1].startsWith("BraavosMain") &&
+            !splittedId[1].startsWith("ArgentMain") &&
+            !splittedId[1].startsWith("ArgentExplorer")
+          ) {
+            // no levels but a corner
+            corner = splittedId[4];
+            heightGroup = parseInt(splittedId[3][1]);
+            activeWidth = parseInt(splittedId[2][0]);
+            activeHeight = parseInt(splittedId[2][2]);
+          } else {
+            heightGroup = parseInt(splittedId[3][1]);
+            activeWidth = parseInt(splittedId[2][0]);
+            activeHeight = parseInt(splittedId[2][2]);
+          }
         }
       } else if (splittedId[0] === "Generic") {
+        needToBeAdded = true;
         key = "Generic";
         activeWidth = parseInt(splittedId[2][0]);
         activeHeight = parseInt(splittedId[2][2]);
         heightGroup = parseInt(splittedId[3][1]);
       } else if (splittedId[0] === "Building") {
+        needToBeAdded = true;
         key = "Generic";
         activeWidth = parseInt(splittedId[1][0]);
         activeHeight = parseInt(splittedId[1][2]);
         heightGroup = parseInt(splittedId[2][1]);
       } else if (splittedId[0] === "Props") {
+        needToBeAdded = true;
         key = "Props";
       }
 
-      // Get custom data for entities
-      let customData = null;
-      let customDatas: { [key: string]: any }[] = [];
-      let tileIdsArr: number[][] | null = null;
-      const tileset = this.ldtk.defs.tilesets.find(
-        (tileset: Tileset) => tileset.uid === entity.tileRect.tilesetUid
-      );
-      if (tileset) {
-        const bounds = this.getTileIdsFromSprite(
-          entity.tileRect,
-          tileset.__cWid
+      if (needToBeAdded) {
+        // Get custom data for entities
+        let customData = null;
+        let customDatas: { [key: string]: any }[] = [];
+        let tileIdsArr: number[][] | null = null;
+        const tileset = this.ldtk.defs.tilesets.find(
+          (tileset: Tileset) => tileset.uid === entity.tileRect.tilesetUid
         );
-        tileIdsArr = this.getTileIdsArray(
-          entity.tileRect,
-          tileset.__cWid,
-          bounds
-        );
-        // console.log("entity rect", entity.identifier, tileIdsArr);
-        const flatArr = tileIdsArr.flat();
-        const data = tileset.customData.filter(
-          (data: { tileId: number; data: string }) =>
-            flatArr.includes(data.tileId)
-        );
-        data.map((elem) => {
-          customDatas[customDatas.length] = {
-            tileId: elem.tileId,
-            ...getCustomDataArr(elem.data),
-          };
-        });
-        if (entity.identifier === "Props_StreetLight") {
-          customDatas = [{ tileId: 1, pointlight: "street1" }];
+        if (tileset) {
+          const bounds = this.getTileIdsFromSprite(
+            entity.tileRect,
+            tileset.__cWid
+          );
+          tileIdsArr = this.getTileIdsArray(
+            entity.tileRect,
+            tileset.__cWid,
+            bounds
+          );
+          const flatArr = tileIdsArr.flat();
+          const data = tileset.customData.filter(
+            (data: { tileId: number; data: string }) =>
+              flatArr.includes(data.tileId)
+          );
+          data.map((elem) => {
+            customDatas[customDatas.length] = {
+              tileId: elem.tileId,
+              ...getCustomDataArr(elem.data),
+            };
+          });
+          if (entity.identifier === "Props_StreetLight") {
+            customDatas = [{ tileId: 1, pointlight: "street1" }];
+          }
         }
-      }
 
-      const entityProps: EntityProps = {
-        ...entity,
-        activeWidth,
-        activeHeight,
-        heightGroup,
-        isBuilt: false,
-        corner,
-        level,
-        tileIdsArr,
-        customDatas,
-      };
-      if (!entitiesSorted[key]) entitiesSorted[key] = {};
-      if (!entitiesSorted[key][activeWidth]) {
-        entitiesSorted[key][activeWidth] = [];
+        const entityProps: EntityProps = {
+          ...entity,
+          activeWidth,
+          activeHeight,
+          heightGroup,
+          isBuilt: false,
+          corner,
+          level,
+          tileIdsArr,
+          customDatas,
+        };
+        if (!entitiesSorted[key]) entitiesSorted[key] = {};
+        if (!entitiesSorted[key][activeWidth]) {
+          entitiesSorted[key][activeWidth] = [];
+        }
+        entitiesSorted[key][activeWidth].push(entityProps);
       }
-      entitiesSorted[key][activeWidth].push(entityProps);
     });
 
     for (let entityType in entitiesSorted) {
@@ -289,7 +352,6 @@ export class LdtkReader {
         );
       }
     }
-
     return entitiesSorted;
   }
 
@@ -328,36 +390,81 @@ export class LdtkReader {
       }
     });
 
+    // todo: sort entities
+    let arr = [];
+    for (const key in this.entities["NFT"]) {
+      const times = this.entities["NFT"][key].length;
+      for (let i = 0; i < times; i++) {
+        arr.push(parseInt(key));
+      }
+    }
     // Generate blocks & rules
-    this.GenerateBlocks();
+    this.GenerateBlocks(arr);
     this.addBoundariesAroundLand();
     this.ApplyRules();
     this.placeProps();
 
+    console.log("this.city", this.city);
+
     return mappack;
   }
 
-  GenerateBlocks(): void {
-    let blockMax = 3;
-    let blockNb = 0;
+  GenerateBlocks(arr: number[]): void {
+    let blocks = [];
+    let block: number[] = [];
+    let totalWidth = 0;
+    for (let i = 0; i < arr.length; i++) {
+      let newWidth = totalWidth + arr[i];
+      if (newWidth > 16 || i === arr.length - 1) {
+        if (block.length > 0) {
+          blocks.push(block);
+        }
+        block = [arr[i]];
+        totalWidth = arr[i];
+      } else {
+        block.push(arr[i]);
+        totalWidth += arr[i];
+      }
+    }
+    if (block.length > 0) {
+      blocks.push(block);
+    }
 
-    while (blockNb <= blockMax) {
-      this.GenerateBlock(blockNb);
-      blockNb++;
+    const blockWidth = blocks.map((b) => b.reduce((a, b) => a + b, 0));
+    for (let i = 0; i < blocks.length; i++) {
+      const nfts = blocks[i];
+      const blockEntity: EntityProps[] = [];
+      let maxHeight = 0;
+      nfts.map((n) => {
+        let entity = this.entities["NFT"][n].find(
+          (e) => !e.isBuilt
+        ) as EntityProps;
+        if (entity) {
+          entity.isBuilt = true;
+          blockEntity.push(entity);
+          if (entity.activeHeight > maxHeight) {
+            maxHeight = entity.activeHeight;
+          }
+        }
+      });
+      this.blocks[i] = {
+        w: blockWidth[i] + 2,
+        h: maxHeight + 2 + 2,
+        nfts: blockEntity,
+      };
+    }
+
+    for (let b = 0; b < this.blocks.length; b++) {
+      this.GenerateBlock(b);
     }
   }
 
   GenerateBlock(blockNb: number): void {
     let center: { x: number; y: number } | null;
-
-    // generate a new block
-    const blockSize = this.GetRandomBlockSize(blockNb);
-    // console.log(
-    //   "----- NEW BLOCK SIZE for rectangle",
-    //   blockSize,
-    //   "blockNb",
-    //   blockNb
-    // );
+    const blockSize = new THREE.Vector2(
+      this.blocks[blockNb].w,
+      this.blocks[blockNb].h
+    );
 
     if (blockNb == 0) {
       center = {
@@ -372,11 +479,33 @@ export class LdtkReader {
       const coordinates = this.PlaceRectangle(corner, blockSize);
       if (!coordinates) return;
       this.addRoadsAroundLand();
-      this.generateBuildings(blockSize, coordinates);
+      // this.generateBuildings(blockSize, coordinates);
+      this.build(
+        this.blocks[blockNb].nfts,
+        coordinates.startX + 1,
+        coordinates.endY - 2,
+        true
+      );
+      this.fillRemainingSpace(
+        blockSize,
+        coordinates.startX + 1,
+        coordinates.endY - 2
+      );
     } else {
-      this.findNextBlockCorners(blockSize);
+      const coordinates = this.findNextBlockCorners(blockSize);
+      if (!coordinates) return;
+      this.build(
+        this.blocks[blockNb].nfts,
+        coordinates.startX + 1,
+        coordinates.endY - 2,
+        true
+      );
+      this.fillRemainingSpace(
+        blockSize,
+        coordinates.startX + 1,
+        coordinates.endY - 2
+      );
     }
-    // console.log("city", this.city);
   }
 
   findValidRoadTiles(
@@ -423,22 +552,6 @@ export class LdtkReader {
       return null;
     }
 
-    // if (direction === "random") {
-    //   roadTiles.sort((a, b) => b.y - a.y);
-    // } else if (direction === "top") {
-    //   roadTiles.sort((a, b) => a.y - b.y);
-    // }
-    // if (direction === "top") {
-    //   roadTiles.sort((a, b) => a.y - b.y || b.x - a.x);
-    // } else if (direction === "bottom") {
-    //   roadTiles.sort((a, b) => b.y - a.y || a.x - b.x);
-    // } else if (direction === "right") {
-    //   roadTiles.sort((a, b) => b.y - a.y || b.x - a.x);
-    // } else if (direction === "left") {
-    //   roadTiles.sort((a, b) => b.y - a.y || a.x - b.x);
-    // }
-    // console.log("possible roadTiles", roadTiles);
-
     let selectedRoadTile = false;
     let counter: number = 0; // keep track of first index
     while (!selectedRoadTile) {
@@ -473,7 +586,6 @@ export class LdtkReader {
             corner: "topLeft",
           });
         }
-        // console.log("potentialTiles", potentialTiles);
 
         // Filter out tiles that are outside the grid or not empty
         let validTiles = potentialTiles.filter(
@@ -484,7 +596,6 @@ export class LdtkReader {
             tile.y < this.citySize &&
             this.city[tile.y][tile.x] === 0
         );
-        // console.log("validTiles", validTiles);
 
         let validTile = null;
         if (validTiles.length > 0) {
@@ -496,14 +607,11 @@ export class LdtkReader {
             );
             if (isValid) {
               selectedRoadTile = true;
-              // console.log("tile selected", tile);
               validTile = tile;
               break;
             }
           }
         }
-
-        // console.log("selectedRoadTile", selectedRoadTile);
 
         if (selectedRoadTile) {
           return validTile;
@@ -588,8 +696,9 @@ export class LdtkReader {
     return corners;
   }
 
-  findNextBlockCorners(blockSize: THREE.Vector2) {
-    // todo: choose randomly first direction instead
+  findNextBlockCorners(
+    blockSize: THREE.Vector2
+  ): { startX: number; startY: number; endX: number; endY: number } | null {
     if (!this.currentDirection) this.currentDirection = "top";
 
     const citySize = this.calculateCitySize();
@@ -599,7 +708,6 @@ export class LdtkReader {
       citySize.minY,
       citySize.maxY
     );
-    // console.log("this.currentDirection", this.currentDirection);
 
     const subArr = getSubArray(
       this.city,
@@ -608,33 +716,27 @@ export class LdtkReader {
       citySize.minY,
       citySize.maxY
     );
-    // console.log("subArr", subArr);
     const corners = this.findEmptyCorners(subArr);
-    // console.log("corners", corners);
     let closestCorner = findClosestCorner(center, corners);
-    // console.log("closestCorner", closestCorner);
 
     if (
       !closestCorner ||
       needsDirectionChange(closestCorner, subArr, blockSize)
     ) {
-      // console.log("need change dir", this.currentDirection);
-      // console.log("citySize", citySize);
       this.changeDirection(citySize);
-      // console.log("new direction", this.currentDirection);
       let roadTile = this.FindRandomRoadTile(
         blockSize,
         this.currentDirection,
         citySize
       );
-      // console.log("roadTile 1", roadTile);
       if (roadTile) {
         const coordinates = this.PlaceRectangle(
           { x: roadTile.x, y: roadTile.y, direction: roadTile.corner },
           blockSize
         );
-        this.generateBuildings(blockSize, coordinates as any);
+        // this.generateBuildings(blockSize, coordinates as any);
         this.addRoadsAroundLand();
+        return coordinates;
       }
     } else {
       const coordinates = this.PlaceRectangle(
@@ -646,9 +748,11 @@ export class LdtkReader {
         blockSize
       );
       this.addRoadsAroundLand();
-      this.generateBuildings(blockSize, coordinates as any);
+      // this.generateBuildings(blockSize, coordinates as any);
       this.currentDirection = setDirectionBasedOnCorner(closestCorner);
+      return coordinates;
     }
+    return null;
   }
 
   calculateCitySize(): CitySize {
@@ -757,7 +861,6 @@ export class LdtkReader {
       }
     }
     this.city = copyCityGrid;
-    // console.log("this.city after roads", this.city);
   }
 
   addBoundariesAroundLand(): void {
@@ -817,9 +920,6 @@ export class LdtkReader {
       }
     }
     this.city = copyCityGrid;
-    // console.log("this.city after grass", this.city);
-    // console.log("ldtk", this.ldtk);
-    // console.log("this.idxToRule", this.idxToRule);
   }
 
   CheckSpaceForRectangle(
@@ -827,7 +927,6 @@ export class LdtkReader {
     rectangleSize: THREE.Vector2,
     direction: string
   ): boolean {
-    // console.log("CORNER", corner);
     // Define increments for each direction
     let increments: { [key: string]: { x: number; y: number } } = {
       top: { x: 0, y: -1 },
@@ -840,8 +939,6 @@ export class LdtkReader {
     let endX = corner.x + increment.x * rectangleSize.x;
     let endY = corner.y + increment.y * rectangleSize.y;
 
-    // console.log("endX", endX, "endY", endY, "corner", corner);
-
     // Check if the rectangle would go out of bounds
     if (
       endX < 0 ||
@@ -849,14 +946,12 @@ export class LdtkReader {
       endY < 0 ||
       endY >= this.citySize
     ) {
-      // console.log("BORDER reached");
       return false;
     }
 
     // Check if the area required for the rectangle is empty
     for (let y = corner.y; y !== endY; y += increment.y) {
       for (let x = corner.x; x !== endX; x += increment.x) {
-        // console.log("(y, x)", y, x);
         // If the current tile is not empty (0), return false
         if (this.city[y][x] !== 0) {
           return false;
@@ -875,7 +970,6 @@ export class LdtkReader {
     } else {
       cornerType = "BottomRight";
     }
-    // console.log("cornerType", cornerType);
     return true;
   }
 
@@ -896,7 +990,6 @@ export class LdtkReader {
 
   // Applying rules on each ground tile type
   ApplyRules(): void {
-    // todo: replace with find layers with identifier IntGrid
     let rules = this.ldtk.defs.layers[1];
 
     // parse rulegroups to build grounds
@@ -1030,10 +1123,8 @@ export class LdtkReader {
     rectangleSize: THREE.Vector2,
     coordinates: { startX: number; startY: number; endX: number; endY: number }
   ): void {
-    // console.log("entitiesSorted", this.entities);
     // @ts-ignore
     let possibleCombinations = buildingsOrdered[rectangleSize.x - 2]; // substract sidewalk width
-    // console.log("possibleCombinations", possibleCombinations);
 
     // start at a random index
     const rand = this.randomGround(rectangleSize.x + rectangleSize.y);
@@ -1044,29 +1135,23 @@ export class LdtkReader {
     let counter = 0;
     while (counter < possibleCombinations.length) {
       let toBuild: EntityProps[] = [];
-      let nftCounter = rectangleSize.x < 9 ? 2 : rectangleSize.x < 12 ? 3 : 4;
-      // console.log("testing a new NFT combination", nftCounter);
+      let nftCounter = rectangleSize.x < 9 ? 3 : rectangleSize.x < 12 ? 4 : 5;
 
       const combination = possibleCombinations[indexStart];
-      // console.log("combination", combination);
 
       let isBuilt = true;
       let x = coordinates.startX + 1; // add sidewalk
       let y = coordinates.endY - 1 - 1; // substract sidewalk
 
       for (let i = 0; i < combination.length; i++) {
-        // console.log("combination[i]", combination[i]);
-
         // Depending on leftNFts, we choose between NFT or Generic
         const leftNfts =
           copyEntities["NFT"][combination[i]] &&
           copyEntities["NFT"][combination[i]].filter(
             (elem: EntityProps) => !elem.isBuilt
           );
-        // console.log("leftNfts", leftNfts);
         const entityType =
           nftCounter > 0 && leftNfts && leftNfts.length > 0 ? "NFT" : "Generic";
-        // console.log("entityType", entityType);
 
         if (
           entityType === "Generic" &&
@@ -1117,9 +1202,6 @@ export class LdtkReader {
           copyEntities[entityType][combination[i]][entityIndex].isBuilt = true;
           if (entityType === "NFT") nftCounter--;
         } else {
-          // console.log(
-          //   "not enough NFTs to build this combination, let's try the next one"
-          // );
           isBuilt = false;
           break;
         }
@@ -1137,9 +1219,6 @@ export class LdtkReader {
       counter++;
       indexStart++;
     }
-    // print subArray of buildings
-    // const { minX, maxX, minY, maxY } = this.findCitySize();
-    // printSubArray(this.buildings, minX, maxX, minY, maxY);
   }
 
   build(
@@ -1155,7 +1234,7 @@ export class LdtkReader {
         w < (entity.corner ? entity.activeWidth + 1 : entity.activeWidth);
         w++
       ) {
-        for (let h = 0; h < entity?.tileRect.h / 16; h++) {
+        for (let h = 0; h < entity.activeHeight; h++) {
           if (w === 0 && h === 0) {
             this.buildings[y][xOffset] = {
               tile: entity.tileRect,
@@ -1165,7 +1244,7 @@ export class LdtkReader {
           } else {
             this.buildings[y - h][xOffset + w] = {
               tile: null,
-              isOccupied: false,
+              isOccupied: true,
               isHidden: true,
             };
           }
@@ -1192,26 +1271,63 @@ export class LdtkReader {
         );
       }
     });
-    // console.log("this.lights", this.lights);
   }
 
   fillRemainingSpace(rectangleSize: THREE.Vector2, x: number, y: number): void {
     const innerWidth = rectangleSize.x - 2;
     const innerHeight = rectangleSize.y - 2;
-    // console.log("innerHeight", innerHeight, "innerWidth", innerWidth);
+    let remainingHeight = innerHeight - 1;
 
     for (let i = y; i > y - innerHeight - 1; i--) {
       for (let j = x; j < x + innerWidth; j++) {
         const remainingWidth = x + innerWidth - j;
         if (!this.buildings[i][j]) {
-          const counter = this.findCounter(i, j, x + innerWidth);
+          let counter = this.findCounter(i, j, x + innerWidth);
+          const entityIndex = this.findEntityIndex(
+            counter,
+            innerHeight,
+            remainingHeight
+          );
+          if (
+            entityIndex !== -1 &&
+            this.entities["Generic"][counter] &&
+            entityIndex < this.entities["Generic"][counter].length &&
+            entityIndex !== 1
+          ) {
+            const entity = this.entities["Generic"][counter][entityIndex];
+            const activeHeight = entity.activeHeight;
+            this.build([entity], j, i, false);
+          }
+        }
+      }
+      remainingHeight--;
+      if (remainingHeight < 1) break;
+    }
+  }
+
+  fillRemainingSpaceOld(
+    rectangleSize: THREE.Vector2,
+    x: number,
+    y: number
+  ): void {
+    const innerWidth = rectangleSize.x - 2;
+    const innerHeight = rectangleSize.y - 2;
+    for (let i = y; i > y - innerHeight - 1; i--) {
+      for (let j = x; j < x + innerWidth; j++) {
+        const remainingWidth = x + innerWidth - j;
+        if (!this.buildings[i][j]) {
+          let counter = this.findCounter(i, j, x + innerWidth);
           const entityIndex = this.findEntityIndex(
             counter,
             innerHeight + 1,
             remainingWidth
           );
-          if (entityIndex !== -1) {
-            // console.log("counter", counter);
+          if (
+            entityIndex !== -1 &&
+            entityIndex < this.entities["Generic"][counter].length
+          ) {
+            if (counter === 5) counter = 4;
+            if (counter === 1) counter = 2;
             const entity = this.entities["Generic"][counter][entityIndex];
             const activeHeight = entity.activeHeight;
             this.build([entity], j, i + activeHeight, false);
@@ -1232,6 +1348,7 @@ export class LdtkReader {
       if (counter === 100) break; // todo: remove this as it's for debugging
     }
     if (counter > 5) {
+      if (counter > 14) counter = 14;
       // @ts-ignore
       const possibleCombinations = buildingsOrdered[counter].filter(
         (combination: number[]) => !combination.includes(6)
@@ -1248,7 +1365,7 @@ export class LdtkReader {
   ): number {
     let entityIndex = -1;
     while (entityIndex === -1) {
-      entityIndex = this.getRandomBuilding(counter, innerHeight + 1);
+      entityIndex = this.getRandomBuilding(counter, innerHeight);
       if (entityIndex === -1) counter++;
       if (counter === remainingWidth || counter === 100) break;
     }
@@ -1259,11 +1376,10 @@ export class LdtkReader {
     const copyEntities = JSON.parse(JSON.stringify(this.entities));
     if (!copyEntities["Generic"][width]) return -1;
     const entityIndex = copyEntities["Generic"][width].findIndex(
-      (elem: EntityProps) => !elem.isBuilt && elem.tileRect.h / 16 <= maxHeight
+      // (elem: EntityProps) => !elem.isBuilt && elem.tileRect.h / 16 <= maxHeight
+      (elem: EntityProps) => !elem.isBuilt && elem.activeHeight < maxHeight - 1
     );
     if (entityIndex === -1) return -1;
-    console.log(' copyEntities["Generic"]', copyEntities["Generic"]);
-    console.log("width", width, "entityIndex", entityIndex);
     copyEntities["Generic"][width][entityIndex].isBuilt = true;
     this.entities = copyEntities;
     return entityIndex;
@@ -1430,19 +1546,13 @@ export class LdtkReader {
     x: number,
     y: number
   ) {
-    // console.log("tileIdsArr", tileIdsArr);
-    // console.log("customDatas", customDatas);
     const lights = customDatas.filter((elem) => elem.pointlight);
-    // console.log("offset before", offset, lights);
     lights?.map((light) => {
       let tempOffset = offset;
-      // console.log("placing light", light);
-      // console.log("offset before", tempOffset);
       const lightType = light.pointlight;
       const lightProps = light ? pointLightsData[lightType] : null;
       if (tempOffset.x === 0 && tempOffset.y === 0 && tileIdsArr) {
         tempOffset = this.findTileIn2DArray(light.tileId, tileIdsArr);
-        // console.log("NEW offset", tempOffset);
         if (light.offset) {
           if (light.offset.x === 0) tempOffset.x -= 0.5;
           if (light.offset.x === 1) tempOffset.x += 0.5;
@@ -1462,21 +1572,6 @@ export class LdtkReader {
       });
     });
   }
-
-  // getBlockedPath(shuffledBuildings: EntityProps[], x: number, y: number) {
-  //   shuffledBuildings.map((building) => {
-  //     if (building.fieldDefs && building.fieldDefs.length > 0) {
-  //       const blockedTiles = building.fieldDefs[0].defaultOverride?.params[0]
-  //         .toString()
-  //         .split("-");
-  //       blockedTiles &&
-  //         blockedTiles.map((tile) => {
-  //           this.blockedPaths.push({ x: x + parseInt(tile), y: y + 1 });
-  //         });
-  //     }
-  //     x = x + building.activeWidth;
-  //   });
-  // }
 
   findTileIn2DArray(tileId: number, arr: number[][]): { x: number; y: number } {
     for (let y = 0; y < arr.length; y++) {

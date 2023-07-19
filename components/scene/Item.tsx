@@ -63,26 +63,11 @@ const ResourceItem = memo<IElem>(
         <mesh
           ref={meshRef}
           position={[pos.posX + 0.5, 0.22, pos.posY - 0.5]}
-          // position={[pos.posX + 0.5, 0.22 + pos.posY * 0.02, pos.posY - 0.5]}
           name={`nameblock`.toString()}
           rotation={[-Math.PI * 0.5, 0, 0]}
           geometry={plane}
           material={material}
-        >
-          {/* <planeGeometry
-            name={`nameblock`.toString() + "_geom"}
-            attach="geometry"
-            args={[1, 1, 1, 1]}
-          />
-          <meshStandardMaterial
-            attach="material"
-            map={elemTexture}
-            name={`$nameblock`.toString() + "_mat"}
-            transparent={true}
-            depthWrite={false}
-            depthTest={true}
-          /> */}
-        </mesh>
+        ></mesh>
       </>
     );
   }

@@ -140,14 +140,22 @@ export const decompose = (
   return solutions;
 };
 
-export const shuffleArray = (array: number[], rand: number) => {
+export const shuffleArray = (array: number[], seed: number) => {
+  const rand = seedRand(seed);
   for (let i = array.length - 1; i > 0; i--) {
-    let j = Math.floor(rand * (i + 1)); // random index from 0 to i
+    let j = Math.floor(rand() * (i + 1)); // random index from 0 to i
     // swap elements array[i] and array[j]
     [array[i], array[j]] = [array[j], array[i]];
   }
   return array;
 };
+
+function seedRand(seed: number) {
+  return function () {
+    seed = (seed * 9301 + 49297) % 233280;
+    return seed / 233280;
+  };
+}
 
 export const shuffleAndHandleCorners = (
   array: EntityProps[],

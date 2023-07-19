@@ -20,18 +20,22 @@ export const NFTContracts = [
   ), // braavos journey NFT Contract
 ];
 
-export const totalNFT = 22;
-// limite 15 - 25 - 40
-
 export const LandsNFTs = {
   braavos: {
     contract_address:
       "0x00057c4b510d66eb1188a7173f31cccee47b9736d40185da8144377b896d5ff3",
     levels: {
-      1: 2,
-      2: 3,
-      3: 5,
+      2: ["NFT_BraavosMain_4x2_H5_1"],
+      3: ["NFT_BraavosMain_4x2_H5_2"],
+      4: ["NFT_BraavosMain_4x2_H6_3"],
+      5: ["NFT_BraavosMain_4x2_H6_3", "NFT_BraavosOnboard_3x1_H3"],
+      6: [
+        "NFT_BraavosMain_4x2_H6_3",
+        "NFT_BraavosOnboard_3x1_H3",
+        "NFT_BraavosMobile_2x2_H3",
+      ],
     },
+    identifier: "NFT_BraavosMobile_2x2_H3",
     nft_names: [
       "Starknet Exchange Journey",
       "Starknet Mobile Journey",
@@ -45,9 +49,17 @@ export const LandsNFTs = {
     contract_address:
       "0x01b22f7a9d18754c994ae0ee9adb4628d414232e3ebd748c386ac286f86c3066",
     levels: {
-      1: 2,
-      2: 4,
-      3: 6,
+      2: ["NFT_ArgentMain_4x3_H3_1"],
+      3: ["NFT_ArgentMain_4x3_H4_2"],
+      4: ["NFT_ArgentMain_4x3_H5_3"],
+      5: ["NFT_ArgentMain_4x3_H5_3"],
+      6: ["NFT_ArgentMain_4x3_H5_3", "NFT_ArgentExplorer_1_3x2_H4"],
+      7: ["NFT_ArgentMain_4x3_H5_3", "NFT_ArgentExplorer_2_3x1_H3"],
+      8: [
+        "NFT_ArgentMain_4x3_H5_3",
+        "NFT_ArgentExplorer_2_3x1_H3",
+        "NFT_DappLand_3x2_H3",
+      ],
     },
     nft_names: [
       "Xplorer — Argent",
@@ -72,6 +84,22 @@ export const LandsNFTs = {
       "Starknet ID Tribe Shield",
       "Zklend Artemis",
       "JediSwap Light Saber",
+    ],
+    levels: {
+      starknetID: "NFT_StarkID_6x4_H6",
+      hasAVNU: "NFT_Avnu_3x2_H3",
+      hasJediSwap: "NFT_JediSwap_4x3_H7",
+      hasSIDShield: "",
+      hasSIDTotem: "NFT_TotemID_2X1_H3",
+      hasZkLend: "NFT_Zklend_3X2_H3",
+      starkFighterLevel: "NFT_StarkFighter_4x2_H3_",
+    },
+  },
+  other: {
+    nfts: [
+      "NFT_SushiRest_4x2_H2",
+      "NFT_StarkCoin_3x2_H2",
+      "NFT_PepperBar_4x3_H2",
     ],
   },
 };
@@ -216,39 +244,27 @@ export const propsOffset: {
 };
 
 export const buildingsOrdered = {
-  5: [
-    [2, 3],
-    // [5]
-  ],
-  6: [
-    // [2, 2, 2],
-    [2, 4],
-    // [3, 3],
-    [6],
-  ],
+  5: [[2, 3]],
+  6: [[2, 4], [6]],
   7: [
     [2, 2, 3],
     [2, 5],
     [3, 4],
   ],
   8: [
-    // [2, 2, 2, 2],
     [2, 2, 4],
     [2, 3, 3],
     [2, 6],
     [3, 5],
-    // [4, 4],
   ],
   9: [
     [2, 2, 2, 3],
     [2, 2, 5],
     [2, 3, 4],
-    // [3, 3, 3],
     [3, 6],
     [4, 5],
   ],
   10: [
-    // [2, 2, 2, 2, 2],
     [2, 2, 2, 4],
     [2, 2, 3, 3],
     [2, 2, 6],
@@ -256,10 +272,8 @@ export const buildingsOrdered = {
     [2, 4, 4],
     [3, 3, 4],
     [4, 6],
-    // [5, 5],
   ],
   11: [
-    // [2, 2, 2, 2, 3],
     [2, 2, 2, 5],
     [2, 2, 3, 4],
     [2, 3, 3, 3],
@@ -270,24 +284,15 @@ export const buildingsOrdered = {
     [5, 6],
   ],
   12: [
-    // [2, 2, 2, 2, 2, 2],
-    // [2, 2, 2, 2, 4],
-    // [2, 2, 2, 3, 3],
     [2, 2, 3, 5],
     [2, 2, 4, 4],
     [2, 3, 3, 4],
     [2, 4, 6],
     [2, 5, 5],
     [3, 3, 6],
-    // [3, 3, 3, 3],
     [3, 4, 5],
-    // [4, 4, 4],
-    // [6, 6]
   ],
   13: [
-    // [2, 2, 2, 2, 2, 3],
-    // [2, 2, 2, 2, 5],
-    // [2, 2, 2, 3, 4],
     [2, 2, 3, 3, 3],
     [2, 2, 3, 6],
     [2, 2, 4, 5],
@@ -300,16 +305,11 @@ export const buildingsOrdered = {
     [4, 4, 5],
   ],
   14: [
-    // [2, 2, 2, 2, 2, 2, 2],
-    // [2, 2, 2, 2, 2, 4],
-    // [2, 2, 2, 2, 3, 3],
-    // [2, 2, 2, 2, 6]
     [2, 2, 2, 3, 5],
     [2, 2, 2, 4, 4],
     [2, 2, 3, 3, 4],
     [2, 2, 4, 6],
     [2, 2, 5, 5],
-    // [2, 3, 3, 3, 3],
     [2, 3, 3, 6],
     [2, 3, 4, 5],
     [2, 4, 4, 4],
