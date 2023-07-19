@@ -266,7 +266,10 @@ export class LdtkReader {
             activeHeight = parseInt(splittedId[2][2]);
           }
         }
-      } else if (splittedId[0] === "Generic") {
+      } else if (
+        splittedId[0] === "Generic" &&
+        entity.identifier !== "Generic_BeigeGarage_4x4_H2"
+      ) {
         needToBeAdded = true;
         key = "Generic";
         activeWidth = parseInt(splittedId[2][0]);

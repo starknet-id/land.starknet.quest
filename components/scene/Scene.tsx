@@ -136,11 +136,7 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
       >
         {/* <Perf position="top-left" style={{ marginLeft: "20px" }} /> */}
         <color attach="background" args={["#1a1528"]} />
-        {/* <directionalLight
-          color="#1b1a34"
-          intensity={5}
-          ref={directionalLightRef}
-        /> */}
+        {/* <directionalLight color="#1b1a34" intensity={5} /> */}
         <directionalLight color="#ffffff" intensity={1} />
         <ambientLight color="#9902fc" intensity={0.1} />
         <Camera
@@ -210,7 +206,7 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
               );
             })
           : null} */}
-        <TerrainBackground />
+        {/* <TerrainBackground /> */}
       </Canvas>
     </>
   );

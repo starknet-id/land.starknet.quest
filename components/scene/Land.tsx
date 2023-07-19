@@ -1,10 +1,8 @@
 import { AspectApiResult, AspectNftProps } from "@/types/types";
-import { decimalToHex, hexToDecimal } from "@/utils/feltService";
 import React, { useEffect, useState } from "react";
 import { Scene } from "./Scene";
 import { LandsNFTs } from "@/utils/constants";
 import { checkAssetInLands, checkAssetInSq } from "@/utils/sortNfts";
-import { isHexString } from "@/utils/stringService";
 
 type LandProps = {
   address: string;
@@ -17,7 +15,6 @@ export const Land = ({ address }: LandProps) => {
 
   useEffect(() => {
     if (address) {
-      console.log("address", address);
       retrieveAssets(
         `https://${
           process.env.NEXT_PUBLIC_IS_TESTNET === "true" ? "api-testnet" : "api"
