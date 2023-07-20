@@ -11,6 +11,9 @@ import CityProps from "./CityProps";
 import { TerrainBackground } from "./TerrainBackground";
 import { Perf } from "r3f-perf";
 import { tileTypes } from "@/utils/constants";
+import { CityLight } from "@/types/types";
+import LightItem from "./LightItem";
+import CityLights from "./CityLights";
 
 type SceneProps = {
   address: string;
@@ -136,8 +139,8 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
       >
         {/* <Perf position="top-left" style={{ marginLeft: "20px" }} /> */}
         <color attach="background" args={["#1a1528"]} />
-        {/* <directionalLight color="#1b1a34" intensity={5} /> */}
-        <directionalLight color="#ffffff" intensity={1} />
+        <directionalLight color="#1b1a34" intensity={5} />
+        {/* <directionalLight color="#ffffff" intensity={1} /> */}
         <ambientLight color="#9902fc" intensity={0.1} />
         <Camera
           aspect={windowWidth / windowHeight}
@@ -181,18 +184,13 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
             directionalLight={directionalLightRef}
           />
         ) : null} */}
-        {/* {data && lightData
-          ? lightData.map((light: CityLight, index: number) => {
-              const z = light.props ? light.props.z : 0.6;
-              return (
-                <LightItem
-                  key={`light_${light.posX}_${light.posY}_${index}`}
-                  pos={posX: light.posX, posZ:0.6 + light.posY * 0.02, posY: light.posY}
-                  type={light.type}
-                />
-              );
-            })
-          : null} */}
+        {data && lightData ? (
+          <CityLights
+            tilesets={data?.defs.tilesets}
+            tileData={mapReader.tileData[tileTypes.LIGHTS]}
+            lightData={lightData}
+          />
+        ) : null}
         {/* {data && lightData
           ? lightData.map((light: CityLight, index: number) => {
               const z = light.props ? light.props.z : 0.6;
@@ -206,7 +204,7 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
               );
             })
           : null} */}
-        <TerrainBackground />
+        {/* <TerrainBackground /> */}
       </Canvas>
     </>
   );

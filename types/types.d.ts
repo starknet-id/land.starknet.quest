@@ -90,13 +90,14 @@ export interface pointLightProps {
   distance?: number;
   decay?: number;
   power?: number;
+  type: LightTypes;
 }
 
 export interface CityLight {
   x: number;
   y: number;
   offset: { x: number; y: number };
-  type: string | null;
+  type: string;
   props: pointLightProps | null;
   posX: number;
   posY: number;
