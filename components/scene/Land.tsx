@@ -6,9 +6,10 @@ import { checkAssetInLands, checkAssetInSq } from "@/utils/sortNfts";
 
 type LandProps = {
   address: string;
+  nightMode: boolean;
 };
 
-export const Land = ({ address }: LandProps) => {
+export const Land = ({ address, nightMode }: LandProps) => {
   const [userNft, setUserNft] = useState<{
     [key: string]: boolean | number;
   }>();
@@ -106,7 +107,9 @@ export const Land = ({ address }: LandProps) => {
           overflow: "hidden",
         }}
       >
-        {userNft ? <Scene address={address} userNft={userNft} /> : null}
+        {userNft ? (
+          <Scene address={address} userNft={userNft} nightMode={nightMode} />
+        ) : null}
       </div>
     </>
   );

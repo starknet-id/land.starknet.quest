@@ -51,12 +51,12 @@ export const Camera: FunctionComponent<CameraProps> = ({
         if (difY < 0) difY = difY * -1;
 
         if (tempMousePos.x < mouse.x) {
-          if (cameraPositionX > citySize / 2) {
+          if (cameraPositionX > 0) {
             mouseMove.x = 0.1 * difX;
             setCameraPositionX(cameraPositionX - mouseMove.x);
           }
         } else if (tempMousePos.x > mouse.x) {
-          if (cameraPositionX < citySize / 2) {
+          if (cameraPositionX < citySize) {
             mouseMove.x = 0.1 * difX;
             setCameraPositionX(cameraPositionX + mouseMove.x);
           }

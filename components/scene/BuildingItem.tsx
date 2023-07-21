@@ -9,10 +9,11 @@ type IElem = {
   tileData: TileRect;
   textureLoader: THREE.Texture;
   neonTexture: THREE.Texture;
+  nightMode: boolean;
 };
 
 const BuildingItem = memo<IElem>(
-  ({ tileset, tileData, pos, textureLoader, neonTexture }): any => {
+  ({ tileset, tileData, pos, textureLoader, neonTexture, nightMode }): any => {
     const [offset, setOffset] = useState<any>(null);
     const [repeat, setRepeat] = useState<any>(null);
 
@@ -79,7 +80,7 @@ const BuildingItem = memo<IElem>(
           />
         </mesh>
 
-        <mesh
+        {/* <mesh
           position={[
             pos.posX + tileData.w / 32,
             0.22 + pos.posY * 0.02,
@@ -97,7 +98,7 @@ const BuildingItem = memo<IElem>(
             depthWrite={false}
             depthTest={true}
           />
-        </mesh>
+        </mesh> */}
       </>
     );
   }

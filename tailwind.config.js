@@ -12,6 +12,7 @@ module.exports = {
       secondary300: "#eae0d5",
       tertiary: "#BF9E7B",
       background: "#101012",
+      backgroundLand: "#1a1528",
       // Add additional default colors here
       transparent: "transparent",
       current: "currentColor",

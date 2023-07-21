@@ -2,6 +2,7 @@ import { CityLight, TileData } from "@/types/types";
 import { memo, useMemo, useState } from "react";
 import {
   AddEquation,
+  AdditiveBlending,
   CustomBlending,
   DstAlphaFactor,
   MaxEquation,
@@ -61,14 +62,13 @@ const LightItem = memo<IElem>(
             `${tileData.entity.tileRect.tilesetUid}_props`.toString() + "_mat"
           }
           transparent={true}
-          depthWrite={false}
+          // depthWrite={false}
           depthTest={true}
           blending={CustomBlending}
           blendEquation={AddEquation}
           blendSrc={SrcAlphaFactor}
-          // blendDst={OneFactor}
-          // blendEquationAlpha={MaxEquation}
-          // opacity={0.5}
+          blendDst={SrcAlphaFactor}
+          opacity={0.5}
         />
       </mesh>
     );

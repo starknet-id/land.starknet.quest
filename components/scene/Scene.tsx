@@ -14,13 +14,19 @@ import { tileTypes } from "@/utils/constants";
 import { CityLight } from "@/types/types";
 import LightItem from "./LightItem";
 import CityLights from "./CityLights";
+import ZoomButtons from "./UI/zoomButtons";
 
 type SceneProps = {
   address: string;
   userNft: { [key: string]: boolean | number };
+  nightMode: boolean;
 };
 
-export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
+export const Scene: FunctionComponent<SceneProps> = ({
+  address,
+  userNft,
+  nightMode,
+}) => {
   const refCanvas = useRef<any>();
   const indexRef = useRef<any>();
   const [index, setIndex] = useState(20);
@@ -80,27 +86,6 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
       .catch((error) => console.error("Error:", error));
   }, []);
 
-  // Controls
-  useEffect(() => {
-    const handleMouseWheelProp = (event: any) => {
-      if (event.deltaY > 0 && indexRef.current > 8) {
-        setIndex(() => indexRef.current - 1);
-      } else if (event.deltaY < 0 && indexRef.current < 25) {
-        setIndex(() => indexRef.current + 1);
-      }
-    };
-    const passiveObject: any = { passive: true };
-    document.addEventListener("wheel", handleMouseWheelProp, passiveObject);
-    return () => {
-      const passiveObject: any = { passive: true };
-      document.removeEventListener(
-        "wheel",
-        handleMouseWheelProp,
-        passiveObject
-      );
-    };
-  }, []);
-
   const bind = useGesture(
     {
       onDrag: ({
@@ -125,6 +110,14 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
     // { eventOptions: { passive: true } }
   );
 
+  const handleMouseWheelProp = (zoom: boolean) => {
+    if (!zoom && indexRef.current < 25) {
+      setIndex(() => indexRef.current + 1);
+    } else if (zoom && indexRef.current > 8) {
+      setIndex(() => indexRef.current - 1);
+    }
+  };
+
   return (
     <>
       <Canvas
@@ -138,9 +131,13 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
         }}
       >
         {/* <Perf position="top-left" style={{ marginLeft: "20px" }} /> */}
+
         <color attach="background" args={["#1a1528"]} />
-        <directionalLight color="#1b1a34" intensity={5} />
-        {/* <directionalLight color="#ffffff" intensity={1} /> */}
+        {nightMode ? (
+          <directionalLight color="#1b1a34" intensity={5} />
+        ) : (
+          <directionalLight color="#ffffff" intensity={1} />
+        )}
         <ambientLight color="#9902fc" intensity={0.1} />
         <Camera
           aspect={windowWidth / windowHeight}
@@ -164,6 +161,7 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
           <Buildings
             tilesets={data?.defs.tilesets}
             buildingData={buildingData}
+            nightMode={nightMode}
           />
         ) : null}
         {/* {data && buildingData ? (
@@ -184,28 +182,34 @@ export const Scene: FunctionComponent<SceneProps> = ({ address, userNft }) => {
             directionalLight={directionalLightRef}
           />
         ) : null} */}
-        {data && lightData ? (
+        {/* {data && lightData ? (
           <CityLights
             tilesets={data?.defs.tilesets}
             tileData={mapReader.tileData[tileTypes.LIGHTS]}
             lightData={lightData}
           />
-        ) : null}
-        {/* {data && lightData
+        ) : null} */}
+        {nightMode && data && lightData
           ? lightData.map((light: CityLight, index: number) => {
               const z = light.props ? light.props.z : 0.6;
               return (
                 <pointLight
                   key={`light_${light.posX}_${light.posY}_${index}`}
                   position={[light.posX, 0.6 + light.posY * 0.02, light.posY]}
-                  {...light.props}
+                  // {...light.props}
+                  intensity={light.props?.intensity}
+                  color={light.props?.color}
+                  distance={light.props?.distance}
+                  decay={light.props?.decay}
+                  power={light.props?.power}
                   castShadow={false}
                 />
               );
             })
-          : null} */}
-        {/* <TerrainBackground /> */}
+          : null}
+        <TerrainBackground />
       </Canvas>
+      <ZoomButtons handleMouseWheelProp={handleMouseWheelProp} />
     </>
   );
 };

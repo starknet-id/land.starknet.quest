@@ -12,6 +12,7 @@ export default function Home() {
   const { provider } = useProvider();
   const network =
     process.env.NEXT_PUBLIC_IS_TESTNET === "true" ? "testnet" : "mainnet";
+  const [nighMode, setNightMode] = useState(false);
 
   useEffect(() => {
     if (!address) return;
@@ -36,8 +37,10 @@ export default function Home() {
 
   return (
     <>
-      <Navbar />
-      {address && !isWrongNetwork ? <Land address={address} /> : null}
+      <Navbar setNightMode={setNightMode} nightMode={nighMode} />
+      {address && !isWrongNetwork ? (
+        <Land address={address} nightMode={nighMode} />
+      ) : null}
     </>
   );
 }

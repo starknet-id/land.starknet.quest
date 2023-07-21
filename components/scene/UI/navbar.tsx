@@ -8,8 +8,18 @@ import Wallets from "../Connect/wallets";
 import { useDisplayName } from "@/hooks/displayName";
 import ModalMessage from "./modalMessage";
 import { constants } from "starknet";
+import { FormControlLabel } from "@mui/material";
+import MaterialUISwitch from "./materialUISwitch";
 
-const Navbar: FunctionComponent = () => {
+type NavbarProps = {
+  setNightMode: (e: boolean) => void;
+  nightMode: boolean;
+};
+
+const Navbar: FunctionComponent<NavbarProps> = ({
+  setNightMode,
+  nightMode,
+}) => {
   const [nav, setNav] = useState<boolean>(false);
   const [hasWallet, setHasWallet] = useState<boolean>(false);
   const { address } = useAccount();
@@ -109,6 +119,13 @@ const Navbar: FunctionComponent = () => {
           </div>
           <div>
             <ul className="hidden lg:flex uppercase items-center">
+              <li className={styles.menuItem}>
+                <FormControlLabel
+                  control={<MaterialUISwitch sx={{ m: 1 }} defaultChecked />}
+                  label=""
+                  onChange={() => setNightMode(!nightMode)}
+                />
+              </li>
               <Link href="/">
                 <li className={styles.menuItem}>My land</li>
               </Link>

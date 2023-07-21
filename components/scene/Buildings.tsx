@@ -20,11 +20,13 @@ import { useLoader } from "@react-three/fiber";
 type IBuildings = {
   tilesets: Tileset[];
   buildingData: any;
+  nightMode: boolean;
 };
 
 export default function Buildings({
   tilesets,
   buildingData,
+  nightMode,
 }: IBuildings): ReactNode {
   const buildingTexture = useLoader(
     TextureLoader,
@@ -69,6 +71,7 @@ export default function Buildings({
                 neonTexture={neonTexture}
                 tileData={tileData.tile}
                 pos={{ posX: iX, posY: iY }}
+                nightMode={nightMode}
               />
             );
           });

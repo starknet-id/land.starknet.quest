@@ -361,7 +361,7 @@ export class LdtkReader {
             };
           });
           if (entity.identifier === "Props_StreetLight") {
-            customDatas = [{ tileId: 1, pointlight: "purple1" }];
+            customDatas = [{ tileId: 1, pointlight: "street1" }];
           }
         }
 
