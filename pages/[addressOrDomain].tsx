@@ -20,6 +20,7 @@ const AddressOrDomain: NextPage = () => {
   const [identity, setIdentity] = useState<Identity>();
   const [isOwner, setIsOwner] = useState(false);
   const [initProfile, setInitProfile] = useState(false);
+  const [nighMode, setNightMode] = useState(false);
 
   // Fetch Aspect API and filter by contract Addresses
   useEffect(() => {
@@ -88,8 +89,10 @@ const AddressOrDomain: NextPage = () => {
 
   return identity && identity.addr ? (
     <>
-      <Navbar />
-      {identity.addr ? <Land address={decimalToHex(identity.addr)} /> : null}
+      <Navbar setNightMode={setNightMode} nightMode={nighMode} />
+      {identity.addr ? (
+        <Land address={decimalToHex(identity.addr)} nightMode={nighMode} />
+      ) : null}
     </>
   ) : null;
 };
