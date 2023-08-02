@@ -1,4 +1,4 @@
-import { AspectApiResult, AspectNftProps } from "@/types/types";
+import { StarkscanApiResult, StarkscanNftProps } from "@/types/types";
 import React, { useEffect, useState } from "react";
 import { Scene } from "./Scene";
 import { LandsNFTs } from "@/utils/constants";
@@ -19,17 +19,17 @@ export const Land = ({ address, nightMode }: LandProps) => {
       retrieveAssets(
         `https://${
           process.env.NEXT_PUBLIC_IS_TESTNET === "true" ? "api-testnet" : "api"
-        }.aspect.co/api/v0/assets?owner_address=${address}`
+        }.starkscan.co/api/v0/nfts?owner_address=${address}`
       ).then((data) => {
-        filterAssets(data.assets);
+        filterAssets(data.data);
       });
     }
   }, [address]);
 
   const retrieveAssets = async (
     url: string,
-    accumulatedAssets: AspectNftProps[] = []
-  ): Promise<AspectApiResult> => {
+    accumulatedAssets: StarkscanNftProps[] = []
+  ): Promise<StarkscanApiResult> => {
     return fetch(url, {
       method: "GET",
       headers: {
@@ -44,18 +44,18 @@ export const Land = ({ address, nightMode }: LandProps) => {
       .then((res) => res.json())
       .then((data) => {
         console.log("data", data);
-        const assets = [...accumulatedAssets, ...data.assets];
+        const assets = [...accumulatedAssets, ...data.data];
         if (data.next_url) {
           return retrieveAssets(data.next_url, assets);
         } else {
           return {
-            assets: assets,
+            data: assets,
           };
         }
       });
   };
 
-  const filterAssets = (assets: AspectNftProps[]) => {
+  const filterAssets = (assets: StarkscanNftProps[]) => {
     // console.log("assets", assets);
 
     let finalNFTs: { [key: string]: boolean | number } = {
