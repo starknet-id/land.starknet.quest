@@ -1,9 +1,9 @@
-import { AspectNftProps } from "@/types/types";
+import { StarkscanNftProps } from "@/types/types";
 import { hexToDecimal } from "./feltService";
 import { LandsNFTs } from "./constants";
 
 export const checkAssetInLands = (
-  asset: AspectNftProps,
+  asset: StarkscanNftProps,
   targetSet: Set<string>,
   contractAddress: string,
   key: string,
@@ -20,7 +20,7 @@ export const checkAssetInLands = (
 };
 
 export const checkAssetInSq = (
-  asset: AspectNftProps,
+  asset: StarkscanNftProps,
   finalNFTs: { [key: string]: boolean | number }
 ) => {
   if (
