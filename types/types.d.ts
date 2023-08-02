@@ -15,7 +15,9 @@ type StarkscanNftProps = {
   contract_address: string;
   description: string | null;
   external_url: string;
-  image_medium_url_copy: string | null;
+  image_url: string | null;
+  image_medium_url: string | null;
+  image_small_url: string | null;
   minted_at_transaction_hash: string | null;
   minted_by_address: string | null;
   token_id: string;

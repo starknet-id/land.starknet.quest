@@ -36,8 +36,8 @@ export const Land = ({ address, nightMode }: LandProps) => {
         "Content-Type": "application/json",
         "x-api-key": `${
           process.env.NEXT_PUBLIC_IS_TESTNET === "true"
-            ? process.env.NEXT_PUBLIC_ASPECT_TESTNET
-            : process.env.NEXT_PUBLIC_ASPECT_MAINNET
+            ? process.env.NEXT_PUBLIC_STARKSCAN_TESTNET
+            : process.env.NEXT_PUBLIC_STARKSCAN_MAINNET
         }`,
       },
     })
