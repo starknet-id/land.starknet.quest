@@ -54,28 +54,22 @@ export class LdtkReader {
   tilesets: Array<Tileset>;
   ldtk: iLDtk;
   address: string;
-  city: Array<Array<number>>;
-  cityBuilded: Array<Array<CityBuilded | null>>;
-  buildings: Array<Array<CityBuildings | null>>;
-  cityProps: Array<Array<CityProps | null>>;
-  idxToRule: { [key: string]: number };
   citySize: number;
   TILE_LAND: number;
   TILE_ROAD: number;
-  rectangles: Array<{
-    startX: number;
-    startY: number;
-    endX: number;
-    endY: number;
-  }> = [];
   userNft: NFTData;
+  cityIntGrid: Array<Array<number>>;
+  cityBuilded: Array<Array<CityBuilded | null>>; // Ground tiles
+  buildings: Array<Array<CityBuildings | null>>; // Buildings tiles
+  cityProps: Array<Array<CityProps | null>>;
+  idxToRule: { [key: string]: number }; // Mapping between tileset rules and tileset values
   entities: { [key: string]: { [key: number]: EntityProps[] } };
   currentDirection: string | null = null;
   lights: CityLight[] = [];
-  blockedPaths: Array<{ x: number; y: number }> = [];
+  blockedPaths: Array<{ x: number; y: number }> = []; // array of tiles where it's not possible to place a prop
   props: Array<Array<CityObjectsProps>> = [];
   tileData: Record<tileTypes, TileData[]>;
-  blocks: Array<{ w: number; h: number; nfts: EntityProps[] }> = [];
+  blocks: Array<{ w: number; h: number; nfts: EntityProps[] }> = []; // array of blocks of buildings
 
   constructor(
     filejson: any,
@@ -87,7 +81,7 @@ export class LdtkReader {
     this.ldtk = filejson;
     this.address = address;
     this.citySize = citySize;
-    this.city = new Array(citySize)
+    this.cityIntGrid = new Array(citySize)
       .fill(0)
       .map(() => new Array(citySize).fill(TILE_EMPTY));
     this.buildings = new Array(citySize)
@@ -449,7 +443,7 @@ export class LdtkReader {
     this.ApplyRules();
     this.placeProps();
 
-    console.log("this.city", this.city);
+    console.log("this.city", this.cityIntGrid);
 
     return mappack;
   }
@@ -560,7 +554,7 @@ export class LdtkReader {
 
     for (let y = 0; y < this.citySize; y++) {
       for (let x = 0; x < this.citySize; x++) {
-        if (this.city[y][x] === this.TILE_ROAD) {
+        if (this.cityIntGrid[y][x] === this.TILE_ROAD) {
           const offsets = getOffsetFromDirection(direction);
           for (let offset of offsets) {
             // Check if the current offset is out of bounds
@@ -574,7 +568,9 @@ export class LdtkReader {
             }
 
             // Check if the tile at the current offset is empty
-            if (this.city[y + offset.offsetY][x + offset.offsetX] === 0) {
+            if (
+              this.cityIntGrid[y + offset.offsetY][x + offset.offsetX] === 0
+            ) {
               // Add the road tile to the list and break out of the offset loop
               roadTiles.push({ x, y, direction: offset.direction });
               break;
@@ -639,7 +635,7 @@ export class LdtkReader {
             tile.x < this.citySize &&
             tile.y >= 0 &&
             tile.y < this.citySize &&
-            this.city[tile.y][tile.x] === 0
+            this.cityIntGrid[tile.y][tile.x] === 0
         );
 
         let validTile = null;
@@ -678,7 +674,7 @@ export class LdtkReader {
     for (let y = 0; y < this.citySize; y++) {
       for (let x = 0; x < this.citySize; x++) {
         // Check if the current tile is part of the rectangle (1 or 2)
-        if (this.city[y][x] === 1 || this.city[y][x] === 2) {
+        if (this.cityIntGrid[y][x] === 1 || this.cityIntGrid[y][x] === 2) {
           // Update the bounding coordinates
           minX = Math.min(minX, x);
           maxX = Math.max(maxX, x);
@@ -755,7 +751,7 @@ export class LdtkReader {
     );
 
     const subArr = getSubArray(
-      this.city,
+      this.cityIntGrid,
       citySize.minX,
       citySize.maxX,
       citySize.minY,
@@ -870,28 +866,28 @@ export class LdtkReader {
     // Fill in the rectangle
     for (let y = startY; y < endY; y++) {
       for (let x = startX; x < endX; x++) {
-        this.city[y][x] = this.TILE_LAND;
+        this.cityIntGrid[y][x] = this.TILE_LAND;
       }
     }
     return { startX, startY, endX, endY };
   }
 
   addRoadsAroundLand(): void {
-    let copyCityGrid = JSON.parse(JSON.stringify(this.city));
+    let copyCityGrid = JSON.parse(JSON.stringify(this.cityIntGrid));
 
-    for (let y = 0; y < this.city.length; y++) {
-      for (let x = 0; x < this.city[y].length; x++) {
+    for (let y = 0; y < this.cityIntGrid.length; y++) {
+      for (let x = 0; x < this.cityIntGrid[y].length; x++) {
         // Check if the current cell is a land
-        if (this.city[y][x] === this.idxToRule["Sidewalk"]) {
+        if (this.cityIntGrid[y][x] === this.idxToRule["Sidewalk"]) {
           // Go through the cells in a 2-unit radius around the current cell
           for (let yOffset = -2; yOffset <= 2; yOffset++) {
             for (let xOffset = -2; xOffset <= 2; xOffset++) {
               // Check if the target cell is within the city grid
               if (
                 y + yOffset >= 0 &&
-                y + yOffset < this.city.length &&
+                y + yOffset < this.cityIntGrid.length &&
                 x + xOffset >= 0 &&
-                x + xOffset < this.city[y].length
+                x + xOffset < this.cityIntGrid[y].length
               ) {
                 // Check if the target cell is empty
                 if (copyCityGrid[y + yOffset][x + xOffset] === 0) {
@@ -905,25 +901,25 @@ export class LdtkReader {
         }
       }
     }
-    this.city = copyCityGrid;
+    this.cityIntGrid = copyCityGrid;
   }
 
   addBoundariesAroundLand(): void {
-    let copyCityGrid = JSON.parse(JSON.stringify(this.city));
+    let copyCityGrid = JSON.parse(JSON.stringify(this.cityIntGrid));
 
-    for (let y = 0; y < this.city.length; y++) {
-      for (let x = 0; x < this.city[y].length; x++) {
+    for (let y = 0; y < this.cityIntGrid.length; y++) {
+      for (let x = 0; x < this.cityIntGrid[y].length; x++) {
         // Check if the current cell is a land
-        if (this.city[y][x] === this.idxToRule["Roads"]) {
+        if (this.cityIntGrid[y][x] === this.idxToRule["Roads"]) {
           // Go through the cells in a 2-unit radius around the current cell
           for (let yOffset = -2; yOffset <= 2; yOffset++) {
             for (let xOffset = -2; xOffset <= 2; xOffset++) {
               // Check if the target cell is within the city grid
               if (
                 y + yOffset >= 0 &&
-                y + yOffset < this.city.length &&
+                y + yOffset < this.cityIntGrid.length &&
                 x + xOffset >= 0 &&
-                x + xOffset < this.city[y].length
+                x + xOffset < this.cityIntGrid[y].length
               ) {
                 // Check if the target cell is empty
                 if (copyCityGrid[y + yOffset][x + xOffset] === 0) {
@@ -938,8 +934,8 @@ export class LdtkReader {
       }
     }
 
-    for (let y = 0; y < this.city.length; y++) {
-      for (let x = 0; x < this.city[y].length; x++) {
+    for (let y = 0; y < this.cityIntGrid.length; y++) {
+      for (let x = 0; x < this.cityIntGrid[y].length; x++) {
         // Check if the current cell is a Boundary
         if (copyCityGrid[y][x] === this.idxToRule["Boundaries"]) {
           // Go through the cells in a 1-unit radius around the current cell
@@ -948,9 +944,9 @@ export class LdtkReader {
               // Check if the target cell is within the city grid
               if (
                 y + yOffset >= 0 &&
-                y + yOffset < this.city.length &&
+                y + yOffset < this.cityIntGrid.length &&
                 x + xOffset >= 0 &&
-                x + xOffset < this.city[y].length
+                x + xOffset < this.cityIntGrid[y].length
               ) {
                 // Check if the target cell is empty
                 if (copyCityGrid[y + yOffset][x + xOffset] === 0) {
@@ -964,7 +960,7 @@ export class LdtkReader {
         }
       }
     }
-    this.city = copyCityGrid;
+    this.cityIntGrid = copyCityGrid;
   }
 
   CheckSpaceForRectangle(
@@ -998,7 +994,7 @@ export class LdtkReader {
     for (let y = corner.y; y !== endY; y += increment.y) {
       for (let x = corner.x; x !== endX; x += increment.x) {
         // If the current tile is not empty (0), return false
-        if (this.city[y][x] !== 0) {
+        if (this.cityIntGrid[y][x] !== 0) {
           return false;
         }
       }
@@ -1045,17 +1041,17 @@ export class LdtkReader {
       if (roadGroup.active) {
         let idx = this.idxToRule[roadGroup.name as string]; // get IntGrid value from rule group name
         if (idx) {
-          for (let y = 0; y < this.city.length; y++) {
-            for (let x = 0; x < this.city[y].length; x++) {
+          for (let y = 0; y < this.cityIntGrid.length; y++) {
+            for (let x = 0; x < this.cityIntGrid[y].length; x++) {
               // check which king of ground we have at this position
-              if (this.city[y][x] === idx) {
+              if (this.cityIntGrid[y][x] === idx) {
                 // check each rules
                 for (let r = 0; r < roadGroup.rules.length; r++) {
                   const rule = roadGroup.rules[r];
                   const pattern2D = convertTo2D(rule.pattern, rule.size);
 
                   const { match, needFlipX, needFlipY } = this.MatchesPattern(
-                    this.city,
+                    this.cityIntGrid,
                     pattern2D,
                     x,
                     y,
@@ -1438,9 +1434,9 @@ export class LdtkReader {
     ) as PropsTypes[];
     let propIndex = 1;
 
-    for (let i = 0; i < this.city.length; i++) {
-      for (let j = 0; j < this.city[i].length; j++) {
-        if (this.city[i][j] !== 1) continue; // if not a sidewalk continue
+    for (let i = 0; i < this.cityIntGrid.length; i++) {
+      for (let j = 0; j < this.cityIntGrid[i].length; j++) {
+        if (this.cityIntGrid[i][j] !== 1) continue; // if not a sidewalk continue
         if (this.blockedPaths.find((elem) => elem.x === j && elem.y === i))
           continue; // if blocked sidewalk continue
 
@@ -1524,26 +1520,44 @@ export class LdtkReader {
   }
 
   checkWhichCorner(y: number, x: number): string | null {
-    if (this.city[y][x - 1] === 2 && this.city[y - 1][x] === 2) {
+    if (this.cityIntGrid[y][x - 1] === 2 && this.cityIntGrid[y - 1][x] === 2) {
       return "topLeft";
-    } else if (this.city[y][x + 1] === 2 && this.city[y - 1][x] === 2) {
+    } else if (
+      this.cityIntGrid[y][x + 1] === 2 &&
+      this.cityIntGrid[y - 1][x] === 2
+    ) {
       return "topRight";
-    } else if (this.city[y][x - 1] === 2 && this.city[y + 1][x] === 2) {
+    } else if (
+      this.cityIntGrid[y][x - 1] === 2 &&
+      this.cityIntGrid[y + 1][x] === 2
+    ) {
       return "bottomLeft";
-    } else if (this.city[y][x + 1] === 2 && this.city[y + 1][x] === 2) {
+    } else if (
+      this.cityIntGrid[y][x + 1] === 2 &&
+      this.cityIntGrid[y + 1][x] === 2
+    ) {
       return "bottomRight";
     }
     return null;
   }
 
   checkWhichSidewalkSide(y: number, x: number): string | null {
-    if (this.city[y][x - 1] === 2 && this.city[y][x + 1] === 1) {
+    if (this.cityIntGrid[y][x - 1] === 2 && this.cityIntGrid[y][x + 1] === 1) {
       return "left";
-    } else if (this.city[y][x + 1] === 2 && this.city[y][x - 1] === 1) {
+    } else if (
+      this.cityIntGrid[y][x + 1] === 2 &&
+      this.cityIntGrid[y][x - 1] === 1
+    ) {
       return "right";
-    } else if (this.city[y - 1][x] === 2 && this.city[y + 1][x] === 1) {
+    } else if (
+      this.cityIntGrid[y - 1][x] === 2 &&
+      this.cityIntGrid[y + 1][x] === 1
+    ) {
       return "top";
-    } else if (this.city[y + 1][x] === 2 && this.city[y - 1][x] === 1) {
+    } else if (
+      this.cityIntGrid[y + 1][x] === 2 &&
+      this.cityIntGrid[y - 1][x] === 1
+    ) {
       return "bottom";
     }
     return null;
