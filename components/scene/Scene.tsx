@@ -97,38 +97,43 @@ export const Scene: FunctionComponent<SceneProps> = ({
           event.preventDefault();
         }}
       >
-        <color attach="background" args={["#1a1528"]} />
-        <directionalLight color="#ffffff" intensity={1} />
-        <ambientLight color="#9902fc" intensity={0.1} />
-        <Camera
-          aspect={windowWidth / windowHeight}
-          mouseRightPressed={mouseRightPressed}
-          index={index}
-          citySize={citySize}
-          isFirstTouch={isFirstTouch}
-        />
-        {data && mapReader && mapReader.cityBuilded ? (
-          <Ground
-            tileset={data?.defs.tilesets[0]}
-            cityData={mapReader.cityBuilded}
-          />
+        {mapReader ? (
+          <>
+            <color attach="background" args={["#1a1528"]} />
+            <directionalLight color="#ffffff" intensity={1} />
+            <ambientLight color="#9902fc" intensity={0.1} />
+            <Camera
+              aspect={windowWidth / windowHeight}
+              mouseRightPressed={mouseRightPressed}
+              index={index}
+              citySize={citySize}
+              isFirstTouch={isFirstTouch}
+              cityCenter={mapReader.cityCenter}
+            />
+            {data && mapReader && mapReader.cityBuilded ? (
+              <Ground
+                tileset={data?.defs.tilesets[0]}
+                cityData={mapReader.cityBuilded}
+              />
+            ) : null}
+            {data && mapReader && mapReader.cityProps ? (
+              <CityProps
+                tilesets={data?.defs.tilesets}
+                cityData={mapReader.cityProps}
+                propsData={mapReader.props}
+                tileData={mapReader.tileData[tileTypes.PROPS]}
+              />
+            ) : null}
+            {data && mapReader && mapReader.buildings ? (
+              <Buildings
+                tilesets={data?.defs.tilesets}
+                buildingData={mapReader.buildings}
+                nightMode={nightMode}
+              />
+            ) : null}
+            <TerrainBackground />
+          </>
         ) : null}
-        {data && mapReader && mapReader.cityProps ? (
-          <CityProps
-            tilesets={data?.defs.tilesets}
-            cityData={mapReader.cityProps}
-            propsData={mapReader.props}
-            tileData={mapReader.tileData[tileTypes.PROPS]}
-          />
-        ) : null}
-        {data && mapReader && mapReader.buildings ? (
-          <Buildings
-            tilesets={data?.defs.tilesets}
-            buildingData={mapReader.buildings}
-            nightMode={nightMode}
-          />
-        ) : null}
-        <TerrainBackground />
       </Canvas>
       <ZoomButtons handleMouseWheelProp={handleMouseWheelProp} />
     </>

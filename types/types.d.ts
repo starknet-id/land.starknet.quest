@@ -95,7 +95,7 @@ export interface pointLightProps {
 export interface CityLight {
   x: number;
   y: number;
-  offset: { x: number; y: number };
+  offset: Coord;
   type: string;
   props: pointLightProps | null;
   posX: number;
@@ -132,7 +132,22 @@ export interface CityObjectsProps {
 export interface TileData {
   entity: any;
   plane: { w: number; h: number };
-  textureOffset: { x: number; y: number };
-  textureRepeat: { x: number; y: number };
+  textureOffset: Coord;
+  textureRepeat: Coord;
   z: number;
 }
+
+export type Coord = {
+  x: number;
+  y: number;
+};
+
+export type CityCenterProps = {
+  center: Coord;
+  boundaries: {
+    minX: number;
+    maxX: number;
+    minY: number;
+    maxY: number;
+  };
+};

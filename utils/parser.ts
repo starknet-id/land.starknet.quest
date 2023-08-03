@@ -11,10 +11,12 @@ import * as THREE from "three";
 import {
   CityBuilded,
   CityBuildings,
+  CityCenterProps,
   CityLight,
   CityObjectsProps,
   CityProps,
   CitySize,
+  Coord,
   SpriteBounds,
   TileData,
 } from "@/types/types";
@@ -55,6 +57,7 @@ export class LdtkReader {
   ldtk: iLDtk;
   address: string;
   citySize: number;
+  cityCenter: CityCenterProps | null = null;
   TILE_LAND: number;
   TILE_ROAD: number;
   userNft: NFTData;
@@ -66,7 +69,7 @@ export class LdtkReader {
   entities: { [key: string]: { [key: number]: EntityProps[] } };
   currentDirection: string | null = null;
   lights: CityLight[] = [];
-  blockedPaths: Array<{ x: number; y: number }> = []; // array of tiles where it's not possible to place a prop
+  blockedPaths: Array<Coord> = []; // array of tiles where it's not possible to place a prop
   props: Array<Array<CityObjectsProps>> = [];
   tileData: Record<tileTypes, TileData[]>;
   blocks: Array<{ w: number; h: number; nfts: EntityProps[] }> = []; // array of blocks of buildings
@@ -443,6 +446,22 @@ export class LdtkReader {
     this.ApplyRules();
     this.placeProps();
 
+    // calculate city center for Camera position
+    const citySize = this.calculateCitySize();
+    const center = calculateCityCenter(
+      citySize.minX,
+      citySize.maxX,
+      citySize.minY,
+      citySize.maxY
+    );
+    this.cityCenter = {
+      center: {
+        x: center.x + citySize.minX,
+        y: center.y + citySize.minY,
+      },
+      boundaries: citySize,
+    };
+    console.log("center", citySize);
     console.log("this.city", this.cityIntGrid);
 
     return mappack;
@@ -499,7 +518,7 @@ export class LdtkReader {
   }
 
   GenerateBlock(blockNb: number): void {
-    let center: { x: number; y: number } | null;
+    let center: Coord | null;
     const blockSize = new THREE.Vector2(
       this.blocks[blockNb].w,
       this.blocks[blockNb].h
@@ -969,7 +988,7 @@ export class LdtkReader {
     direction: string
   ): boolean {
     // Define increments for each direction
-    let increments: { [key: string]: { x: number; y: number } } = {
+    let increments: { [key: string]: Coord } = {
       top: { x: 0, y: -1 },
       bottom: { x: 0, y: 1 },
       left: { x: -1, y: 0 },
@@ -1160,7 +1179,6 @@ export class LdtkReader {
   }
 
   generateBuildings(
-    // corner: { x: number; y: number; direction: string },
     rectangleSize: THREE.Vector2,
     coordinates: { startX: number; startY: number; endX: number; endY: number }
   ): void {
@@ -1601,7 +1619,7 @@ export class LdtkReader {
   addLight(
     tileIdsArr: number[][] | null,
     customDatas: { [key: string]: any }[],
-    offset: { x: number; y: number },
+    offset: Coord,
     x: number,
     y: number
   ) {
@@ -1632,7 +1650,7 @@ export class LdtkReader {
     });
   }
 
-  findTileIn2DArray(tileId: number, arr: number[][]): { x: number; y: number } {
+  findTileIn2DArray(tileId: number, arr: number[][]): Coord {
     for (let y = 0; y < arr.length; y++) {
       for (let x = 0; x < arr[y].length; x++) {
         if (arr[y][x] === tileId) {

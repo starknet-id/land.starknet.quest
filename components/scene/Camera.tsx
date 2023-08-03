@@ -7,6 +7,7 @@ import React, {
 import { useThree, useFrame } from "@react-three/fiber";
 import { PerspectiveCamera } from "@react-three/drei";
 import { Vector2 } from "three";
+import { CityCenterProps } from "@/types/types";
 
 type CameraProps = {
   aspect: number;
@@ -15,6 +16,7 @@ type CameraProps = {
   index: number;
   citySize: number;
   isFirstTouch: boolean;
+  cityCenter: CityCenterProps;
 };
 
 export const Camera: FunctionComponent<CameraProps> = ({
@@ -23,17 +25,16 @@ export const Camera: FunctionComponent<CameraProps> = ({
   index,
   citySize,
   isFirstTouch,
+  cityCenter,
 }) => {
   const cameraRef = useRef<THREE.PerspectiveCamera>();
   const set = useThree(({ set }) => set);
   const size = useThree(({ size }) => size);
   const [tempMousePos, setTempMousePos] = useState(new Vector2(0, 0));
-  const [cameraPositionX, setCameraPositionX] = useState(Math.floor(25));
-  const [cameraPositionY, setCameraPositionY] = useState(
-    Math.floor(citySize / 2)
-  );
+  const [cameraPositionX, setCameraPositionX] = useState(cityCenter.center.x);
+  const [cameraPositionY, setCameraPositionY] = useState(cityCenter.center.y);
   const [cameraPositionZ, setCameraPositionZ] = useState(
-    Math.floor(citySize / 3)
+    cityCenter.center.y - 3 // -3 to offset menu bar
   );
 
   useFrame(({ mouse }) => {
@@ -51,12 +52,12 @@ export const Camera: FunctionComponent<CameraProps> = ({
         if (difY < 0) difY = difY * -1;
 
         if (tempMousePos.x < mouse.x) {
-          if (cameraPositionX > 0) {
+          if (cameraPositionX > cityCenter.boundaries.minX) {
             mouseMove.x = 0.1 * difX;
             setCameraPositionX(cameraPositionX - mouseMove.x);
           }
         } else if (tempMousePos.x > mouse.x) {
-          if (cameraPositionX < citySize) {
+          if (cameraPositionX < cityCenter.boundaries.maxX) {
             mouseMove.x = 0.1 * difX;
             setCameraPositionX(cameraPositionX + mouseMove.x);
           }
@@ -64,12 +65,12 @@ export const Camera: FunctionComponent<CameraProps> = ({
           mouseMove.x = 0;
         }
         if (tempMousePos.y < mouse.y) {
-          if (cameraPositionZ < citySize) {
+          if (cameraPositionZ < cityCenter.boundaries.maxY) {
             mouseMove.y = 0.1 * difY;
             setCameraPositionZ(cameraPositionZ + mouseMove.y);
           }
         } else if (tempMousePos.y > mouse.y) {
-          if (cameraPositionZ > 0) {
+          if (cameraPositionZ > cityCenter.boundaries.minY) {
             mouseMove.y = 0.1 * difY;
             setCameraPositionZ(cameraPositionZ - mouseMove.y);
           }

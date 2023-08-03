@@ -1,5 +1,5 @@
 import { EntityProps } from "@/types/ldtk";
-import { ClosestCorner } from "@/types/types";
+import { ClosestCorner, Coord } from "@/types/types";
 
 export const convertTo2D = (array: Array<number>, size: number) => {
   let result: Array<Array<number>> = [];
@@ -191,17 +191,14 @@ export const shuffleAndHandleCorners = (
   return restOfEntities;
 };
 
-const distance = (
-  center: { x: number; y: number },
-  corner: { row: number; col: number }
-) => {
+const distance = (center: Coord, corner: { row: number; col: number }) => {
   return Math.sqrt(
     Math.pow(corner.col - center.x, 2) + Math.pow(corner.row - center.y, 2)
   );
 };
 
 export const findClosestCorner = (
-  center: { x: number; y: number },
+  center: Coord,
   corners: ClosestCorner[]
 ): ClosestCorner | null => {
   let closestCorner = null;
