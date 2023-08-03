@@ -1,17 +1,5 @@
-import React, {
-  ReactNode,
-  createRef,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-import {
-  TextureLoader,
-  RepeatWrapping,
-  NearestFilter,
-  Vector2,
-  Mesh,
-} from "three";
+import React, { ReactNode } from "react";
+import { TextureLoader, RepeatWrapping, NearestFilter, Vector2 } from "three";
 import { CityBuildings } from "@/types/types";
 import BuildingItem from "./BuildingItem";
 import { Tileset } from "@/types/ldtk";
@@ -20,7 +8,7 @@ import { useLoader } from "@react-three/fiber";
 type IBuildings = {
   tilesets: Tileset[];
   buildingData: any;
-  nightMode: boolean;
+  nightMode?: boolean;
 };
 
 export default function Buildings({

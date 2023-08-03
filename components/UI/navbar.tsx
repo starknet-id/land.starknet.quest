@@ -21,10 +21,10 @@ import ModalMessage from "./modalMessage";
 import { constants } from "starknet";
 import {
   CircularProgress,
-  FormControlLabel,
+  FormControlLabel, // Night mode
   useMediaQuery,
 } from "@mui/material";
-import MaterialUISwitch from "./materialUISwitch";
+// import MaterialUISwitch from "./materialUISwitch";
 import ModalWallet from "../Connect/modalWallet";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 
@@ -166,13 +166,14 @@ const Navbar: FunctionComponent<NavbarProps> = ({
           </div>
           <div>
             <ul className="hidden lg:flex uppercase items-center">
-              <li className={styles.menuItem}>
+              {/* Remove night mode for now */}
+              {/* <li className={styles.menuItem}>
                 <FormControlLabel
                   control={<MaterialUISwitch sx={{ m: 1 }} defaultChecked />}
                   label=""
                   onChange={() => setNightMode(!nightMode)}
                 />
-              </li>
+              </li> */}
               <Link href="/">
                 <li className={styles.menuItem}>My land</li>
               </Link>

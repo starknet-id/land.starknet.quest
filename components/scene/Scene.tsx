@@ -9,10 +9,6 @@ import Buildings from "./Buildings";
 import { useGesture } from "react-use-gesture";
 import CityProps from "./CityProps";
 import { TerrainBackground } from "./TerrainBackground";
-import { Perf } from "r3f-perf";
-import { CityLight } from "@/types/types";
-import LightItem from "./LightItem";
-import CityLights from "./CityLights";
 import ZoomButtons from "../UI/zoomButtons";
 import { NFTData } from "@/types/nft";
 import { tileTypes } from "@/constants/tiles";
@@ -20,7 +16,7 @@ import { tileTypes } from "@/constants/tiles";
 type SceneProps = {
   address: string;
   userNft: NFTData;
-  nightMode: boolean;
+  nightMode?: boolean;
 };
 
 export const Scene: FunctionComponent<SceneProps> = ({
@@ -34,15 +30,8 @@ export const Scene: FunctionComponent<SceneProps> = ({
   indexRef.current = index;
   const [windowWidth, setWindowWidth] = useState(0);
   const [windowHeight, setWindowHeight] = useState(0);
-  // const [mouseWheelProp, setMouseWheelProp] = useState(0);
   const [mouseRightPressed, setMouseRightPressed] = useState(0);
   const [isFirstTouch, setIsFirstTouch] = useState(false);
-
-  // const ambiantLightRef = useRef<any>();
-  // const directionalLightRef = useRef<any>(null);
-  // const [neonsRefs, setNeonsRefs] = useState<any[]>([]);
-  // const neonGroup = useRef<any>();
-
   const [data, setData] = useState<iLDtk>();
   const [cityData, setCityData] = useState<any>(null);
   const [propsData, setPropsData] = useState<any>(null);
@@ -131,14 +120,12 @@ export const Scene: FunctionComponent<SceneProps> = ({
           event.preventDefault();
         }}
       >
-        {/* <Perf position="top-left" style={{ marginLeft: "20px" }} /> */}
-
         <color attach="background" args={["#1a1528"]} />
-        {nightMode ? (
+        {/* {nightMode ? (
           <directionalLight color="#1b1a34" intensity={5} />
-        ) : (
-          <directionalLight color="#ffffff" intensity={1} />
-        )}
+        ) : ( */}
+        <directionalLight color="#ffffff" intensity={1} />
+        {/* )} */}
         <ambientLight color="#9902fc" intensity={0.1} />
         <Camera
           aspect={windowWidth / windowHeight}
@@ -165,32 +152,7 @@ export const Scene: FunctionComponent<SceneProps> = ({
             nightMode={nightMode}
           />
         ) : null}
-        {/* {data && buildingData ? (
-          <Neons
-            tilesets={data?.defs.tilesets}
-            buildingData={buildingData}
-            windowWidth={windowWidth}
-            windowHeight={windowHeight}
-          />
-        ) : null} */}
-        {/* {data && buildingData ? (
-          <Neons
-            tilesets={data?.defs.tilesets}
-            buildingData={buildingData}
-            windowWidth={windowWidth}
-            windowHeight={windowHeight}
-            ambientLight={ambiantLightRef}
-            directionalLight={directionalLightRef}
-          />
-        ) : null} */}
-        {/* {data && lightData ? (
-          <CityLights
-            tilesets={data?.defs.tilesets}
-            tileData={mapReader.tileData[tileTypes.LIGHTS]}
-            lightData={lightData}
-          />
-        ) : null} */}
-        {nightMode && data && lightData
+        {/* {nightMode && data && lightData
           ? lightData.map((light: CityLight, index: number) => {
               const z = light.props ? light.props.z : 0.6;
               return (
@@ -207,7 +169,7 @@ export const Scene: FunctionComponent<SceneProps> = ({
                 />
               );
             })
-          : null}
+          : null} */}
         <TerrainBackground />
       </Canvas>
       <ZoomButtons handleMouseWheelProp={handleMouseWheelProp} />

@@ -9,8 +9,8 @@ import { LandsNFTs } from "@/constants/nft";
 
 type LandProps = {
   address: string;
-  nightMode: boolean;
   isOwner: boolean;
+  nightMode?: boolean;
 };
 
 export const Land = ({ address, nightMode, isOwner }: LandProps) => {

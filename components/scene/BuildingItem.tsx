@@ -9,7 +9,7 @@ type IElem = {
   tileData: TileRect;
   textureLoader: THREE.Texture;
   neonTexture: THREE.Texture;
-  nightMode: boolean;
+  nightMode?: boolean;
 };
 
 const BuildingItem = memo<IElem>(
