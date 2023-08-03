@@ -10,15 +10,16 @@ import { useGesture } from "react-use-gesture";
 import CityProps from "./CityProps";
 import { TerrainBackground } from "./TerrainBackground";
 import { Perf } from "r3f-perf";
-import { tileTypes } from "@/utils/constants";
 import { CityLight } from "@/types/types";
 import LightItem from "./LightItem";
 import CityLights from "./CityLights";
 import ZoomButtons from "../UI/zoomButtons";
+import { NFTData } from "@/types/nft";
+import { tileTypes } from "@/constants/tiles";
 
 type SceneProps = {
   address: string;
-  userNft: { [key: string]: boolean | number };
+  userNft: NFTData;
   nightMode: boolean;
 };
 

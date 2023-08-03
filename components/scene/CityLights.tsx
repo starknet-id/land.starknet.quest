@@ -4,7 +4,7 @@ import { CityLight, TileData } from "@/types/types";
 import { Tileset } from "@/types/ldtk";
 import { useLoader } from "@react-three/fiber";
 import LightItem from "./LightItem";
-import { pointLightsData } from "@/utils/constants";
+import { pointLightsData } from "@/constants/lights";
 
 type IProps = {
   tilesets: Tileset[];

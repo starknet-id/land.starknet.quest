@@ -1,5 +1,5 @@
+import { propsOffset } from "@/constants/tiles";
 import { CityProps, TileData } from "@/types/types";
-import { propsOffset } from "@/utils/constants";
 import { memo, useMemo, useState } from "react";
 
 type IElem = {

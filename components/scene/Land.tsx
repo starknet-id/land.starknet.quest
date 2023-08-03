@@ -1,12 +1,11 @@
 import { StarkscanApiResult, StarkscanNftProps } from "@/types/types";
-import React, { useContext, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Scene } from "./Scene";
-import { LandsNFTs } from "@/utils/constants";
 import { checkAssetInLands, checkAssetInSq } from "@/utils/sortNfts";
-import { hexToDecimal } from "@/utils/feltService";
-import { StarknetIdJsContext } from "@/context/StarknetIdJsProvider";
 import styles from "../../styles/land.module.css";
 import Button from "../UI/button";
+import { NFTCounters, NFTData } from "@/types/nft";
+import { LandsNFTs } from "@/constants/nft";
 
 type LandProps = {
   address: string;
@@ -16,9 +15,7 @@ type LandProps = {
 
 export const Land = ({ address, nightMode, isOwner }: LandProps) => {
   const [hasNFTs, setHasNFTs] = useState(false);
-  const [userNft, setUserNft] = useState<{
-    [key: string]: boolean | number;
-  }>();
+  const [userNft, setUserNft] = useState<NFTData>();
 
   useEffect(() => {
     if (address) {
@@ -58,17 +55,13 @@ export const Land = ({ address, nightMode, isOwner }: LandProps) => {
   };
 
   const filterAssets = (assets: StarkscanNftProps[]) => {
-    let finalNFTs: { [key: string]: boolean | number } = {
+    let finalNFTCounters: NFTCounters = {
       totalNFTs: 0,
       braavosCounter: 0,
       argentxCounter: 0,
       starkFighterLevel: 0,
-      hasZkLend: false,
-      hasAVNU: false,
-      hasJediSwap: false,
-      hasSIDShield: false,
-      hasSIDTotem: false,
     };
+    let finalNFTFlags: boolean[] = [];
 
     const braavosTarget = new Set(LandsNFTs.braavos.nft_names);
     const argentxTarget = new Set(LandsNFTs.argentx.nft_names);
@@ -80,22 +73,28 @@ export const Land = ({ address, nightMode, isOwner }: LandProps) => {
         braavosTarget,
         LandsNFTs.braavos.contract_address,
         "braavos",
-        finalNFTs
+        finalNFTCounters
       );
       checkAssetInLands(
         asset,
         argentxTarget,
         LandsNFTs.argentx.contract_address,
         "argentx",
-        finalNFTs
+        finalNFTCounters
       );
-      checkAssetInSq(asset, finalNFTs);
+      checkAssetInSq(asset, finalNFTCounters, finalNFTFlags);
     }
 
-    setUserNft(finalNFTs);
-    if ((finalNFTs.totalNFTs as number) > 0) setHasNFTs(true);
+    setUserNft({
+      counters: finalNFTCounters,
+      flags: finalNFTFlags,
+    });
+    if ((finalNFTCounters.totalNFTs as number) > 0) setHasNFTs(true);
     else setHasNFTs(false);
-    console.log("finalNFTs", finalNFTs);
+    console.log("finalNFTs", {
+      counters: finalNFTCounters,
+      flags: finalNFTFlags,
+    });
   };
 
   return (
