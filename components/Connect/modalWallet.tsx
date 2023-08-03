@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import styles from "../../../styles/components/walletMessage.module.css";
+import styles from "../../styles/components/walletMessage.module.css";
 import { FunctionComponent } from "react";
 import { Modal } from "@mui/material";
 import { useAccount, useTransactions } from "@starknet-react/core";
@@ -9,7 +9,7 @@ import ClickableAction from "../UI/clickableAction";
 import { CommonTransactionReceiptResponse } from "starknet";
 import CloseIcon from "../UI/icons/closeIcon";
 import ArgentIcon from "../UI/icons/argentIcon";
-import theme from "../../../styles/theme";
+import theme from "../../styles/theme";
 import LogoutIcon from "@mui/icons-material/Logout";
 
 type ModalWalletProps = {

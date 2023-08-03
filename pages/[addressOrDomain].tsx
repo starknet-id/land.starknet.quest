@@ -1,5 +1,5 @@
+import Navbar from "@/components/UI/navbar";
 import { Land } from "@/components/scene/Land";
-import Navbar from "@/components/scene/UI/navbar";
 import { StarknetIdJsContext } from "@/context/StarknetIdJsProvider";
 import { Identity } from "@/types/types";
 import { decimalToHex, hexToDecimal } from "@/utils/feltService";

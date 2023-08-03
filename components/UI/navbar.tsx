@@ -6,7 +6,7 @@ import React, {
   useLayoutEffect,
 } from "react";
 import { AiOutlineClose, AiOutlineMenu } from "react-icons/ai";
-import styles from "../../../styles/components/navbar.module.css";
+import styles from "../../styles/components/navbar.module.css";
 import Button from "./button";
 import {
   useConnectors,

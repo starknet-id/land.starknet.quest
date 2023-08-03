@@ -1,5 +1,5 @@
 import React, { FunctionComponent, ReactNode } from "react";
-import styles from "../../../styles/components/modal.module.css";
+import styles from "../../styles/components/modal.module.css";
 
 type ButtonProps = {
   onClick?: () => void;

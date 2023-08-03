@@ -2,7 +2,7 @@ import { Inter } from "next/font/google";
 import { useEffect, useState } from "react";
 import { useAccount, useProvider } from "@starknet-react/core";
 import { Land } from "@/components/scene/Land";
-import Navbar from "@/components/scene/UI/navbar";
+import Navbar from "@/components/UI/navbar";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -39,7 +39,8 @@ export default function Home() {
     <>
       <Navbar setNightMode={setNightMode} nightMode={nighMode} />
       {address && !isWrongNetwork ? (
-        <Land address={address} nightMode={nighMode} />
+        // <Land address={address} nightMode={nighMode} />
+        <div></div>
       ) : null}
     </>
   );

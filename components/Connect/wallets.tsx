@@ -1,5 +1,5 @@
 import React from "react";
-import styles from "../../../styles/components/wallets.module.css";
+import styles from "../../styles/components/wallets.module.css";
 import { Connector, useAccount, useConnectors } from "@starknet-react/core";
 import { FunctionComponent, useEffect } from "react";
 import Button from "../UI/button";

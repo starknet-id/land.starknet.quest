@@ -14,7 +14,7 @@ import { tileTypes } from "@/utils/constants";
 import { CityLight } from "@/types/types";
 import LightItem from "./LightItem";
 import CityLights from "./CityLights";
-import ZoomButtons from "./UI/zoomButtons";
+import ZoomButtons from "../UI/zoomButtons";
 
 type SceneProps = {
   address: string;
