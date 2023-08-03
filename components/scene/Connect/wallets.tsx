@@ -2,7 +2,7 @@ import React from "react";
 import styles from "../../../styles/components/wallets.module.css";
 import { Connector, useAccount, useConnectors } from "@starknet-react/core";
 import { FunctionComponent, useEffect } from "react";
-import Button from "../UI/Button";
+import Button from "../UI/button";
 import WalletIcons from "../UI/icons/walletIcons";
 import { Modal } from "@mui/material";
 
@@ -61,7 +61,9 @@ const Wallets: FunctionComponent<WalletsProps> = ({
                 <Button onClick={() => connectWallet(connector)}>
                   <div className="flex justify-center items-center">
                     <WalletIcons id={connector.id} />
-                    {`Connect ${connector.name}`}
+                    {connector.id === "braavos" || connector.id === "argentX"
+                      ? `Connect ${connector.name}`
+                      : "Login with Email"}
                   </div>
                 </Button>
               </div>

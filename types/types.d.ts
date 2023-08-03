@@ -1,6 +1,11 @@
 import { num, number } from "starknet";
 import { Entity } from "./ldtk";
 
+type IconProps = {
+  color: string;
+  width: string;
+};
+
 type Identity = {
   id: string;
   addr: string;

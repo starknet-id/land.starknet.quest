@@ -1,15 +1,32 @@
 import Link from "next/link";
-import React, { useState, useEffect, FunctionComponent } from "react";
+import React, {
+  useState,
+  useEffect,
+  FunctionComponent,
+  useLayoutEffect,
+} from "react";
 import { AiOutlineClose, AiOutlineMenu } from "react-icons/ai";
 import styles from "../../../styles/components/navbar.module.css";
-import Button from "./Button";
-import { useConnectors, useAccount, useProvider } from "@starknet-react/core";
+import Button from "./button";
+import {
+  useConnectors,
+  useAccount,
+  useProvider,
+  useTransactionManager,
+  Connector,
+} from "@starknet-react/core";
 import Wallets from "../Connect/wallets";
 import { useDisplayName } from "@/hooks/displayName";
 import ModalMessage from "./modalMessage";
 import { constants } from "starknet";
-import { FormControlLabel } from "@mui/material";
+import {
+  CircularProgress,
+  FormControlLabel,
+  useMediaQuery,
+} from "@mui/material";
 import MaterialUISwitch from "./materialUISwitch";
+import ModalWallet from "../Connect/modalWallet";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 
 type NavbarProps = {
   setNightMode: (e: boolean) => void;
@@ -25,19 +42,55 @@ const Navbar: FunctionComponent<NavbarProps> = ({
   const { address } = useAccount();
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isWrongNetwork, setIsWrongNetwork] = useState(false);
-  const { available, connect, disconnect } = useConnectors();
+  const { available, connect, disconnect, connectors, refresh } =
+    useConnectors();
   const { provider } = useProvider();
-  const domainOrAddress = useDisplayName(address ?? "");
+  const isMobile = useMediaQuery("(max-width:425px)");
+  const domainOrAddress = useDisplayName(address ?? "", isMobile);
   const secondary = "#f4faff";
   const network =
     process.env.NEXT_PUBLIC_IS_TESTNET === "true" ? "testnet" : "mainnet";
+  // const [showWallet, setShowWallet] = useState<boolean>(false);
+  // const [navbarBg, setNavbarBg] = useState<boolean>(false);
+  const [txLoading, setTxLoading] = useState<number>(0);
+  const { hashes } = useTransactionManager();
   const [showWallet, setShowWallet] = useState<boolean>(false);
-  const [navbarBg, setNavbarBg] = useState<boolean>(false);
 
-  useEffect(() => {
-    // to handle autoconnect starknet-react adds connector id in local storage
-    // if there is no value stored, we show the wallet modal
-    if (!localStorage.getItem("lastUsedConnector")) setHasWallet(true);
+  useLayoutEffect(() => {
+    async function tryAutoConnect(connectors: Connector[]) {
+      // to handle autoconnect starknet-react adds connector id in local storage
+      // if there is no value stored, we show the wallet modal
+      const lastConnectedConnectorId =
+        localStorage.getItem("lastUsedConnector");
+      if (lastConnectedConnectorId === null) {
+        return;
+      }
+
+      const lastConnectedConnector = connectors.find(
+        (connector) => connector.id === lastConnectedConnectorId
+      );
+      if (lastConnectedConnector === undefined) {
+        return;
+      }
+
+      try {
+        if (!(await lastConnectedConnector.ready())) {
+          // Not authorized anymore.
+          return;
+        }
+
+        await connect(lastConnectedConnector);
+      } catch {
+        // no-op
+      }
+    }
+
+    const timeout = setTimeout(() => {
+      if (!address) {
+        tryAutoConnect(connectors);
+      }
+    }, 1000);
+    return () => clearTimeout(timeout);
   }, []);
 
   useEffect(() => {
@@ -48,19 +101,12 @@ const Navbar: FunctionComponent<NavbarProps> = ({
     if (!isConnected) return;
 
     provider.getChainId().then((chainId) => {
-      if (
-        chainId === constants.StarknetChainId.SN_GOERLI &&
-        network === "mainnet"
-      ) {
-        setIsWrongNetwork(true);
-      } else if (
-        chainId === constants.StarknetChainId.SN_MAIN &&
-        network === "testnet"
-      ) {
-        setIsWrongNetwork(true);
-      } else {
-        setIsWrongNetwork(false);
-      }
+      const isWrongNetwork =
+        (chainId === constants.StarknetChainId.SN_GOERLI &&
+          network === "mainnet") ||
+        (chainId === constants.StarknetChainId.SN_MAIN &&
+          network === "testnet");
+      setIsWrongNetwork(isWrongNetwork);
     });
   }, [provider, network, isConnected]);
 
@@ -69,7 +115,7 @@ const Navbar: FunctionComponent<NavbarProps> = ({
     setIsConnected(false);
     setIsWrongNetwork(false);
     setHasWallet(false);
-    // setShowWallet(true);
+    setShowWallet(false);
   }
 
   function handleNav(): void {
@@ -78,6 +124,7 @@ const Navbar: FunctionComponent<NavbarProps> = ({
 
   function onTopButtonClick(): void {
     if (!isConnected) {
+      refresh();
       if (available.length > 0) {
         if (available.length === 1) {
           connect(available[0]);
@@ -98,16 +145,18 @@ const Navbar: FunctionComponent<NavbarProps> = ({
     return textToReturn;
   }
 
+  // Refresh available connectors before showing wallet modal
+  function refreshAndShowWallet(): void {
+    refresh();
+    setHasWallet(true);
+  }
+
   return (
     <>
       <div className={`fixed w-full z-[1]`}>
-        <div
-          className={`${styles.navbarContainer} ${
-            navbarBg ? styles.navbarScrolled : ""
-          }`}
-        >
+        <div className={styles.navbarContainer}>
           <div className="ml-4">
-            {/* <Link href="/" className="cursor-pointer">
+            <Link href="/" className="cursor-pointer">
               <img
                 className="cursor-pointer"
                 src="/visuals/starknetquestLogo.svg"
@@ -115,7 +164,7 @@ const Navbar: FunctionComponent<NavbarProps> = ({
                 width={70}
                 height={70}
               />
-            </Link> */}
+            </Link>
           </div>
           <div>
             <ul className="hidden lg:flex uppercase items-center">
@@ -145,17 +194,29 @@ const Navbar: FunctionComponent<NavbarProps> = ({
                 <Button
                   onClick={
                     isConnected
-                      ? () => disconnectByClick()
-                      : available.length === 1
-                      ? () => connect(available[0])
-                      : () => setHasWallet(true)
+                      ? () => setShowWallet(true)
+                      : () => refreshAndShowWallet()
                   }
                 >
                   {isConnected ? (
-                    <div className="flex justify-center items-center">
-                      <div>{domainOrAddress}</div>
-                      {/* <LogoutIcon className="ml-3" /> */}
-                    </div>
+                    <>
+                      {txLoading > 0 ? (
+                        <div className="flex justify-center items-center">
+                          <p className="mr-3">{txLoading} on hold</p>
+                          <CircularProgress
+                            sx={{
+                              color: "white",
+                            }}
+                            size={25}
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex justify-center items-center">
+                          <p className="mr-3">{domainOrAddress}</p>
+                          <AccountCircleIcon />
+                        </div>
+                      )}
+                    </>
                   ) : (
                     "connect"
                   )}
@@ -185,21 +246,21 @@ const Navbar: FunctionComponent<NavbarProps> = ({
             <div>
               <div className="flex w-full items-center justify-between">
                 <div className="">
-                  {/* <Link href="/">
+                  <Link href="/">
                     <img
                       src="/visuals/starknetquestLogo.svg"
                       alt="Starknet Quest Logo"
                       width={70}
                       height={70}
                     />
-                  </Link> */}
+                  </Link>
                 </div>
 
                 <div
                   onClick={handleNav}
                   className="rounded-full cursor-pointer"
                 >
-                  <AiOutlineClose color={secondary} />
+                  <AiOutlineClose color={secondary} size={isMobile ? 25 : 20} />
                 </div>
               </div>
               <div className="border-b border-secondary my-4">
@@ -264,33 +325,14 @@ const Navbar: FunctionComponent<NavbarProps> = ({
           </div>
         }
       />
-      {/* {isWrongNetwork ? (
-        <div
-          style={{
-            position: "absolute",
-            left: "50%",
-            transform: "translate(-50%, 50%",
-          }}
-        >
-          <PixelModal width={400}>
-            <>
-              <div className="mb-5 text-center">
-                Connect with a Starknet wallet to start exploring your land.
-              </div>
-
-              <p className="text-center">
-                This app only supports Starknet {network}, you have to change
-                your network to be able use it.
-              </p>
-              <div className="mt-3">
-                <Button onClick={() => disconnectByClick()}>
-                  {`Disconnect`}
-                </Button>
-              </div>
-            </>
-          </PixelModal>
-        </div>
-      ) : null} */}
+      <ModalWallet
+        domain={domainOrAddress}
+        open={showWallet}
+        closeModal={() => setShowWallet(false)}
+        disconnectByClick={disconnectByClick}
+        hashes={hashes}
+        setTxLoading={setTxLoading}
+      />
       <Wallets
         closeWallet={() => setHasWallet(false)}
         hasWallet={Boolean(hasWallet && !isWrongNetwork)}

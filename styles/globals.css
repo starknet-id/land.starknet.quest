@@ -30,5 +30,5 @@ html, body {
   margin: 0;
   font-family: "Sora";
   background-color: var(--background);
-  color: var(--background-land);
+  color: #FFFFFF;
 }
