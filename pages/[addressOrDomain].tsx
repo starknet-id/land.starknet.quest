@@ -9,6 +9,7 @@ import { useAccount } from "@starknet-react/core";
 import { NextPage } from "next";
 import { useRouter } from "next/router";
 import { useContext, useEffect, useState } from "react";
+import styles from "../styles/land.module.css";
 
 const AddressOrDomain: NextPage = () => {
   const router = useRouter();
@@ -87,14 +88,32 @@ const AddressOrDomain: NextPage = () => {
     }
   }, [addressOrDomain, address]);
 
-  return identity && identity.addr ? (
+  return (
     <>
       <Navbar setNightMode={setNightMode} nightMode={nighMode} />
-      {identity.addr ? (
-        <Land address={decimalToHex(identity.addr)} nightMode={nighMode} />
-      ) : null}
+      {identity && identity.addr ? (
+        identity.domain ? (
+          <Land
+            address={decimalToHex(identity.addr)}
+            nightMode={nighMode}
+            isOwner={isOwner}
+          />
+        ) : (
+          <div className={`h-screen flex justify-center items-center flex-col`}>
+            <h2 className={`${styles.notFound} ${styles.name} mb-5`}>
+              User doesn&apos;t own a .stark domain
+            </h2>
+          </div>
+        )
+      ) : (
+        <div className={`h-screen flex justify-center items-center flex-col`}>
+          <h2 className={`${styles.notFound} ${styles.name} mb-5`}>
+            User doesn&apos;t own a .stark domain
+          </h2>
+        </div>
+      )}
     </>
-  ) : null;
+  );
 };
 
 export default AddressOrDomain;

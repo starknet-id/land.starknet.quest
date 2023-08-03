@@ -11,11 +11,10 @@ import Button from "../UI/button";
 type LandProps = {
   address: string;
   nightMode: boolean;
+  isOwner: boolean;
 };
 
-export const Land = ({ address, nightMode }: LandProps) => {
-  const { starknetIdNavigator } = useContext(StarknetIdJsContext);
-  const [hasDomain, setHasDomain] = useState(false);
+export const Land = ({ address, nightMode, isOwner }: LandProps) => {
   const [hasNFTs, setHasNFTs] = useState(false);
   const [userNft, setUserNft] = useState<{
     [key: string]: boolean | number;
@@ -23,21 +22,6 @@ export const Land = ({ address, nightMode }: LandProps) => {
 
   useEffect(() => {
     if (address) {
-      // check that user owns a domain
-      starknetIdNavigator
-        ?.getStarkName(hexToDecimal(address))
-        .then((name) => {
-          if (name) setHasDomain(true);
-          else setHasDomain(false);
-        })
-        .catch((e) => {
-          setHasDomain(false);
-        });
-    }
-  }, [address]);
-
-  useEffect(() => {
-    if (address && hasDomain) {
       retrieveAssets(
         `https://${
           process.env.NEXT_PUBLIC_IS_TESTNET === "true" ? "api-testnet" : "api"
@@ -46,7 +30,7 @@ export const Land = ({ address, nightMode }: LandProps) => {
         filterAssets(data.data);
       });
     }
-  }, [address, hasDomain]);
+  }, [address]);
 
   const retrieveAssets = async (
     url: string,
@@ -116,45 +100,32 @@ export const Land = ({ address, nightMode }: LandProps) => {
 
   return (
     <>
-      {hasDomain ? (
-        <div
-          style={{
-            height: "100vh",
-            width: "100vw",
-            zIndex: "0",
-            touchAction: "none",
-            overflow: "hidden",
-          }}
-        >
-          {userNft && hasNFTs ? (
-            <Scene address={address} userNft={userNft} nightMode={nightMode} />
-          ) : (
-            <div
-              className={`h-screen flex justify-center items-center flex-col`}
-            >
-              <h2 className={`${styles.notFound} ${styles.name} mb-5`}>
-                You have not fulfilled any quest yet
-              </h2>
+      <div
+        style={{
+          height: "100vh",
+          width: "100vw",
+          zIndex: "0",
+          touchAction: "none",
+          overflow: "hidden",
+        }}
+      >
+        {userNft && hasNFTs ? (
+          <Scene address={address} userNft={userNft} nightMode={nightMode} />
+        ) : (
+          <div className={`h-screen flex justify-center items-center flex-col`}>
+            <h2 className={`${styles.notFound} ${styles.name} mb-5`}>
+              {isOwner ? "You have" : "User has"} not fulfilled any quest yet
+            </h2>
+            {isOwner ? (
               <div className="text-background ml-5 mr-5">
                 <Button onClick={() => window.open("https://starknet.quest")}>
                   Begin
                 </Button>
               </div>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className={`h-screen flex justify-center items-center flex-col`}>
-          <h2 className={`${styles.notFound} ${styles.name} mb-5`}>
-            You don&apos;t own a .stark domain
-          </h2>
-          <div className="text-background ml-5 mr-5">
-            <Button onClick={() => window.open("https://app.starknet.id")}>
-              Get yours now
-            </Button>
+            ) : null}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </>
   );
 };
