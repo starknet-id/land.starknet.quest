@@ -22,7 +22,7 @@ export enum NFTKeys {
   JediSwap = 2,
   SIDShield = 3,
   SIDTotem = 4,
-  SithSwap = 5,
+  // SithSwap = 5,
 }
 
 export enum WalletKeys {
@@ -94,7 +94,7 @@ export const LandsNFTs: LandsNFTsType = {
       "Starknet ID Tribe Shield",
       "Zklend Artemis",
       "JediSwap Light Saber",
-      "Sithswap Helmet",
+      // "Sithswap Helmet",
     ],
     levels: {
       starknetID: ["NFT_StarkID_6x4_H6"],
@@ -104,9 +104,21 @@ export const LandsNFTs: LandsNFTsType = {
       2: ["NFT_JediSwap_4x3_H7"],
       3: [""],
       4: ["NFT_TotemID_2X1_H3"],
-      5: ["NFT_SithSwap_4x2_H3"],
+      // 5: ["NFT_SithSwap_4x2_H3"],
     },
   },
+};
+
+export const assetMap: { [key: string]: number } = {
+  "StarkFighter Bronze Arcade": 1,
+  "StarkFighter Silver Arcade": 2,
+  "StarkFighter Gold Arcade": 3,
+  "AVNU Astronaut": NFTKeys.AVNU,
+  "JediSwap Light Saber": NFTKeys.JediSwap,
+  "Zklend Artemis": NFTKeys.Zklend,
+  "Starknet ID Tribe Totem": NFTKeys.SIDTotem,
+  "Starknet ID Tribe Shield": NFTKeys.SIDShield,
+  // "Sithswap Helmet": NFTKeys.SithSwap,
 };
 
 // Additional NFTs [number_required_to_get_NFT: NFT name]
