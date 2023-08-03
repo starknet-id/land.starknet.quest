@@ -1,8 +1,12 @@
 import { StarkscanApiResult, StarkscanNftProps } from "@/types/types";
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { Scene } from "./Scene";
 import { LandsNFTs } from "@/utils/constants";
 import { checkAssetInLands, checkAssetInSq } from "@/utils/sortNfts";
+import { hexToDecimal } from "@/utils/feltService";
+import { StarknetIdJsContext } from "@/context/StarknetIdJsProvider";
+import styles from "../../styles/land.module.css";
+import Button from "../UI/button";
 
 type LandProps = {
   address: string;
@@ -10,12 +14,30 @@ type LandProps = {
 };
 
 export const Land = ({ address, nightMode }: LandProps) => {
+  const { starknetIdNavigator } = useContext(StarknetIdJsContext);
+  const [hasDomain, setHasDomain] = useState(false);
+  const [hasNFTs, setHasNFTs] = useState(false);
   const [userNft, setUserNft] = useState<{
     [key: string]: boolean | number;
   }>();
 
   useEffect(() => {
     if (address) {
+      // check that user owns a domain
+      starknetIdNavigator
+        ?.getStarkName(hexToDecimal(address))
+        .then((name) => {
+          if (name) setHasDomain(true);
+          else setHasDomain(false);
+        })
+        .catch((e) => {
+          setHasDomain(false);
+        });
+    }
+  }, [address]);
+
+  useEffect(() => {
+    if (address && hasDomain) {
       retrieveAssets(
         `https://${
           process.env.NEXT_PUBLIC_IS_TESTNET === "true" ? "api-testnet" : "api"
@@ -24,7 +46,7 @@ export const Land = ({ address, nightMode }: LandProps) => {
         filterAssets(data.data);
       });
     }
-  }, [address]);
+  }, [address, hasDomain]);
 
   const retrieveAssets = async (
     url: string,
@@ -34,11 +56,7 @@ export const Land = ({ address, nightMode }: LandProps) => {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": `${
-          process.env.NEXT_PUBLIC_IS_TESTNET === "true"
-            ? process.env.NEXT_PUBLIC_STARKSCAN_TESTNET
-            : process.env.NEXT_PUBLIC_STARKSCAN_MAINNET
-        }`,
+        "x-api-key": `${process.env.NEXT_PUBLIC_STARKSCAN_MAINNET}`,
       },
     })
       .then((res) => res.json())
@@ -56,8 +74,6 @@ export const Land = ({ address, nightMode }: LandProps) => {
   };
 
   const filterAssets = (assets: StarkscanNftProps[]) => {
-    // console.log("assets", assets);
-
     let finalNFTs: { [key: string]: boolean | number } = {
       totalNFTs: 0,
       braavosCounter: 0,
@@ -93,24 +109,52 @@ export const Land = ({ address, nightMode }: LandProps) => {
     }
 
     setUserNft(finalNFTs);
+    if ((finalNFTs.totalNFTs as number) > 0) setHasNFTs(true);
+    else setHasNFTs(false);
     console.log("finalNFTs", finalNFTs);
   };
 
   return (
     <>
-      <div
-        style={{
-          height: "100vh",
-          width: "100vw",
-          zIndex: "0",
-          touchAction: "none",
-          overflow: "hidden",
-        }}
-      >
-        {userNft ? (
-          <Scene address={address} userNft={userNft} nightMode={nightMode} />
-        ) : null}
-      </div>
+      {hasDomain ? (
+        <div
+          style={{
+            height: "100vh",
+            width: "100vw",
+            zIndex: "0",
+            touchAction: "none",
+            overflow: "hidden",
+          }}
+        >
+          {userNft && hasNFTs ? (
+            <Scene address={address} userNft={userNft} nightMode={nightMode} />
+          ) : (
+            <div
+              className={`h-screen flex justify-center items-center flex-col`}
+            >
+              <h2 className={`${styles.notFound} ${styles.name} mb-5`}>
+                You have not fulfilled any quest yet
+              </h2>
+              <div className="text-background ml-5 mr-5">
+                <Button onClick={() => window.open("https://starknet.quest")}>
+                  Begin
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className={`h-screen flex justify-center items-center flex-col`}>
+          <h2 className={`${styles.notFound} ${styles.name} mb-5`}>
+            You don&apos;t own a .stark domain
+          </h2>
+          <div className="text-background ml-5 mr-5">
+            <Button onClick={() => window.open("https://app.starknet.id")}>
+              Get yours now
+            </Button>
+          </div>
+        </div>
+      )}
     </>
   );
 };

@@ -50,8 +50,6 @@ const Navbar: FunctionComponent<NavbarProps> = ({
   const secondary = "#f4faff";
   const network =
     process.env.NEXT_PUBLIC_IS_TESTNET === "true" ? "testnet" : "mainnet";
-  // const [showWallet, setShowWallet] = useState<boolean>(false);
-  // const [navbarBg, setNavbarBg] = useState<boolean>(false);
   const [txLoading, setTxLoading] = useState<number>(0);
   const { hashes } = useTransactionManager();
   const [showWallet, setShowWallet] = useState<boolean>(false);
