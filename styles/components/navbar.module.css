@@ -30,7 +30,7 @@
   padding-right: 0.5rem;
   height: 12vh;
   transition: background-color 1s ease;
-  background-color: var(--background-land);
+  background-color: transparent;
 }
 
 .navbarScrolled {
