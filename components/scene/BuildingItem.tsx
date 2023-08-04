@@ -1,14 +1,14 @@
 import { TileRect } from "@/types/ldtk";
 import React from "react";
 import { memo, useMemo, useState } from "react";
-import { PlaneGeometry } from "three";
+import { PlaneGeometry, Texture } from "three";
 
 type IElem = {
   tileset: any;
   pos: { posX: number; posY: number };
   tileData: TileRect;
-  textureLoader: THREE.Texture;
-  neonTexture: THREE.Texture;
+  textureLoader: Texture;
+  neonTexture: Texture;
   nightMode?: boolean;
 };
 

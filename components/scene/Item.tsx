@@ -1,13 +1,13 @@
 import { CityBuilded } from "@/types/types";
 import { useFrame } from "@react-three/fiber";
 import { memo, useMemo, useRef, useState } from "react";
-import { MeshPhongMaterial, PlaneGeometry } from "three";
+import { MeshPhongMaterial, PlaneGeometry, Texture } from "three";
 
 type IElem = {
   tileset: any;
   pos: { posX: number; posY: number };
   tileData: CityBuilded;
-  textureLoader: THREE.Texture;
+  textureLoader: Texture;
   entity?: any;
 };
 

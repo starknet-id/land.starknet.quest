@@ -1,11 +1,11 @@
 import { CityObjectsProps, TileData } from "@/types/types";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
-import { InstancedMesh, Mesh } from "three";
+import { InstancedMesh, Mesh, Texture } from "three";
 
 type IElem = {
   tileset: any;
   pos?: { posX: number; posY: number };
-  textureLoader: THREE.Texture;
+  textureLoader: Texture;
   propData: CityObjectsProps[];
   entity?: any;
   index: number;

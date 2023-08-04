@@ -33,9 +33,7 @@ export const Camera: FunctionComponent<CameraProps> = ({
   const [tempMousePos, setTempMousePos] = useState(new Vector2(0, 0));
   const [cameraPositionX, setCameraPositionX] = useState(cityCenter.center.x);
   const [cameraPositionY, setCameraPositionY] = useState(cityCenter.center.y);
-  const [cameraPositionZ, setCameraPositionZ] = useState(
-    cityCenter.center.y - 3 // -3 to offset menu bar
-  );
+  const [cameraPositionZ, setCameraPositionZ] = useState(cityCenter.center.y);
 
   useFrame(({ mouse }) => {
     if (cameraRef.current != null) {

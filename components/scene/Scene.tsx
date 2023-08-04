@@ -6,7 +6,7 @@ import { LdtkReader } from "@/utils/parser";
 import Ground from "./Ground";
 import { iLDtk } from "@/types/ldtk";
 import Buildings from "./Buildings";
-import { useGesture } from "react-use-gesture";
+import { useGesture } from "@use-gesture/react";
 import CityProps from "./CityProps";
 import { TerrainBackground } from "./TerrainBackground";
 import ZoomButtons from "../UI/zoomButtons";
@@ -96,11 +96,12 @@ export const Scene: FunctionComponent<SceneProps> = ({
         onContextMenu={(event) => {
           event.preventDefault();
         }}
+        style={{ touchAction: "none" }}
       >
         {mapReader ? (
           <>
             <color attach="background" args={["#1a1528"]} />
-            <directionalLight color="#ffffff" intensity={1} />
+            <directionalLight color="#ffffff" intensity={3} />
             <ambientLight color="#9902fc" intensity={0.1} />
             <Camera
               aspect={windowWidth / windowHeight}

@@ -1,11 +1,12 @@
 import { propsOffset } from "@/constants/tiles";
 import { CityProps, TileData } from "@/types/types";
 import { memo, useMemo, useState } from "react";
+import { Texture } from "three";
 
 type IElem = {
   tileset: any;
   pos: { posX: number; posY: number };
-  textureLoader: THREE.Texture;
+  textureLoader: Texture;
   propData: CityProps;
   tileData: TileData;
 };

@@ -1,5 +1,6 @@
 import { EntityProps } from "@/types/ldtk";
 import { ClosestCorner, Coord } from "@/types/types";
+import { Vector2 } from "three";
 
 export const convertTo2D = (array: Array<number>, size: number) => {
   let result: Array<Array<number>> = [];
@@ -230,7 +231,7 @@ export const calculateCityCenter = (
 export const needsDirectionChange = (
   closestCorner: ClosestCorner,
   subArr: any[],
-  blockSize: THREE.Vector2
+  blockSize: Vector2
 ) => {
   if (
     ((closestCorner?.corner === "topRight" ||

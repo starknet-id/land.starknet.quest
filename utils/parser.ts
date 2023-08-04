@@ -7,7 +7,6 @@ import {
   Entity,
   TileRect,
 } from "@/types/ldtk";
-import * as THREE from "three";
 import {
   CityBuilded,
   CityBuildings,
@@ -50,6 +49,7 @@ import {
   LightsTypesNames,
   pointLightsData,
 } from "@/constants/lights";
+import { Vector2 } from "three";
 
 export class LdtkReader {
   level!: Level;
@@ -519,7 +519,7 @@ export class LdtkReader {
 
   GenerateBlock(blockNb: number): void {
     let center: Coord | null;
-    const blockSize = new THREE.Vector2(
+    const blockSize = new Vector2(
       this.blocks[blockNb].w,
       this.blocks[blockNb].h
     );
@@ -603,7 +603,7 @@ export class LdtkReader {
 
   // randomly choose where to start the next block of buildings
   FindRandomRoadTile(
-    rectangleSize: THREE.Vector2,
+    rectangleSize: Vector2,
     direction: string,
     citySize: CitySize
   ): { x: number; y: number; direction: string; corner: string } | null {
@@ -757,7 +757,7 @@ export class LdtkReader {
   }
 
   findNextBlockCorners(
-    blockSize: THREE.Vector2
+    blockSize: Vector2
   ): { startX: number; startY: number; endX: number; endY: number } | null {
     if (!this.currentDirection) this.currentDirection = "top";
 
@@ -843,7 +843,7 @@ export class LdtkReader {
 
   PlaceRectangle(
     corner: { x: number; y: number; direction: string },
-    rectangleSize: THREE.Vector2
+    rectangleSize: Vector2
   ): { startX: number; startY: number; endX: number; endY: number } | null {
     let startX, startY, endX, endY;
 
@@ -984,7 +984,7 @@ export class LdtkReader {
 
   CheckSpaceForRectangle(
     corner: any,
-    rectangleSize: THREE.Vector2,
+    rectangleSize: Vector2,
     direction: string
   ): boolean {
     // Define increments for each direction
@@ -1034,7 +1034,7 @@ export class LdtkReader {
   }
 
   // Get the size of a new block of buildings
-  GetRandomBlockSize(blockNb: number): THREE.Vector2 {
+  GetRandomBlockSize(blockNb: number): Vector2 {
     let rand = this.randomGround(blockNb * 10);
     let width = Math.round(
       MIN_LAND_WIDTH + rand * (MAX_LAND_WIDTH - MIN_LAND_WIDTH)
@@ -1045,7 +1045,7 @@ export class LdtkReader {
       MIN_LAND_HEIGHT + rand * (MAX_LAND_HEIGHT - MIN_LAND_HEIGHT)
     );
 
-    return new THREE.Vector2(width, height);
+    return new Vector2(width, height);
   }
 
   // Applying rules on each ground tile type
@@ -1179,7 +1179,7 @@ export class LdtkReader {
   }
 
   generateBuildings(
-    rectangleSize: THREE.Vector2,
+    rectangleSize: Vector2,
     coordinates: { startX: number; startY: number; endX: number; endY: number }
   ): void {
     // @ts-ignore
@@ -1332,7 +1332,7 @@ export class LdtkReader {
     });
   }
 
-  fillRemainingSpace(rectangleSize: THREE.Vector2, x: number, y: number): void {
+  fillRemainingSpace(rectangleSize: Vector2, x: number, y: number): void {
     const innerWidth = rectangleSize.x - 2;
     const innerHeight = rectangleSize.y - 2;
     let remainingHeight = innerHeight - 1;
@@ -1364,11 +1364,7 @@ export class LdtkReader {
     }
   }
 
-  fillRemainingSpaceOld(
-    rectangleSize: THREE.Vector2,
-    x: number,
-    y: number
-  ): void {
+  fillRemainingSpaceOld(rectangleSize: Vector2, x: number, y: number): void {
     const innerWidth = rectangleSize.x - 2;
     const innerHeight = rectangleSize.y - 2;
     for (let i = y; i > y - innerHeight - 1; i--) {
