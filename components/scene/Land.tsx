@@ -37,7 +37,7 @@ export const Land = ({ address, nightMode, isOwner }: LandProps) => {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": `${process.env.NEXT_PUBLIC_STARKSCAN_MAINNET}`,
+        "x-api-key": `${process.env.NEXT_PUBLIC_STARKSCAN}`,
       },
     })
       .then((res) => res.json())

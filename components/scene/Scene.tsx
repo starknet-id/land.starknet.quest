@@ -26,7 +26,7 @@ export const Scene: FunctionComponent<SceneProps> = ({
 }) => {
   const refCanvas = useRef<any>();
   const indexRef = useRef<any>();
-  const [index, setIndex] = useState(20);
+  const [index, setIndex] = useState(15);
   indexRef.current = index;
   const [windowWidth, setWindowWidth] = useState(0);
   const [windowHeight, setWindowHeight] = useState(0);
@@ -77,12 +77,8 @@ export const Scene: FunctionComponent<SceneProps> = ({
     },
   });
 
-  const handleMouseWheelProp = (zoom: boolean) => {
-    if (!zoom && indexRef.current < 25) {
-      setIndex(() => indexRef.current + 1);
-    } else if (zoom && indexRef.current > 8) {
-      setIndex(() => indexRef.current - 1);
-    }
+  const updateZoomIndex = (newValue: number) => {
+    setIndex(() => newValue);
   };
 
   return (
@@ -136,7 +132,7 @@ export const Scene: FunctionComponent<SceneProps> = ({
           </>
         ) : null}
       </Canvas>
-      <ZoomButtons handleMouseWheelProp={handleMouseWheelProp} />
+      <ZoomButtons updateZoomIndex={updateZoomIndex} />
     </>
   );
 };

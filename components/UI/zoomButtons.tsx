@@ -1,50 +1,73 @@
-import { Button, ButtonGroup } from "@mui/material";
-import React, { FunctionComponent } from "react";
-import AddIcon from "@mui/icons-material/Add";
-import RemoveIcon from "@mui/icons-material/Remove";
+import { Slider } from "@mui/material";
+import React, { FunctionComponent, useState } from "react";
+import { styled } from "@mui/material/styles";
 
 type ZoomButtonsProps = {
-  handleMouseWheelProp: (e: boolean) => void;
+  updateZoomIndex: (newValue: number) => void;
 };
 
 const ZoomButtons: FunctionComponent<ZoomButtonsProps> = ({
-  handleMouseWheelProp,
+  updateZoomIndex,
 }) => {
+  const [value, setValue] = useState<number>(15);
+
+  const handleChange = (event: Event, newValue: number | number[]) => {
+    if (typeof newValue === "number" && newValue !== value) {
+      updateZoomIndex(newValue);
+      setValue(newValue);
+    }
+  };
+
+  const ZoomSlider = styled(Slider)(({ theme }) => ({
+    color: "#E1DCEA",
+    height: 2,
+    // width: 650,
+    width: "80%",
+    maxWidth: "850px",
+    margin: "auto",
+    position: "absolute",
+    left: "50%",
+    transform: "translate(-50%, 0)",
+    bottom: "40px",
+    "& .MuiSlider-track": {
+      border: "none",
+    },
+    "& .MuiSlider-thumb": {
+      height: 18,
+      width: 18,
+      backgroundColor: "#E1DCEA",
+      border: "2px solid currentColor",
+      "&:focus, &:hover, &.Mui-active, &.Mui-focusVisible": {
+        boxShadow: "inherit",
+      },
+      "&:before": {
+        display: "none",
+      },
+    },
+  }));
+
   return (
-    <>
-      <ButtonGroup
-        variant="contained"
-        aria-label="outlined button group"
-        style={{
-          position: "absolute",
-          bottom: "10px",
-          right: "10px",
-          backgroundColor: "#1a1528",
-          borderColor: "#1a1528",
-        }}
-      >
-        <Button
-          style={{
-            backgroundColor: "#1a1528",
-            borderColor: "#1a1528",
-          }}
-          variant="contained"
-          onClick={() => handleMouseWheelProp(true)}
-        >
-          <AddIcon />
-        </Button>
-        <Button
-          style={{
-            backgroundColor: "#1a1528",
-            borderColor: "#1a1528",
-          }}
-          variant="contained"
-          onClick={() => handleMouseWheelProp(false)}
-        >
-          <RemoveIcon />
-        </Button>
-      </ButtonGroup>
-    </>
+    <Slider
+      value={value}
+      min={8}
+      step={1}
+      max={25}
+      defaultValue={15}
+      onChange={handleChange}
+      aria-labelledby="non-linear-slider"
+      sx={{
+        color: "#E1DCEA",
+        height: 2,
+        // width: 650,
+        width: "80%",
+        maxWidth: "850px",
+        margin: "auto",
+        position: "absolute",
+        left: "50%",
+        transform: "translate(-50%, 0)",
+        bottom: "40px",
+      }}
+    />
   );
 };
 
